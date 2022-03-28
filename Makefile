@@ -1,7 +1,7 @@
 include Makefile.env
 
 export DOCKER_USERNAME ?= mohammad-nassar10
-export DOCKER_PASSWORD ?= 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
+export DOCKER_PASSWORD ?= 
 export DOCKER_HOSTNAME ?= ghcr.io
 export DOCKER_NAMESPACE ?= mohammad-nassar10
 export DOCKER_TAGNAME ?= main
