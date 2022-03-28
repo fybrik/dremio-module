@@ -1,0 +1,37 @@
+auth:
+  basic:
+    credentials:
+      qqq: "moo"
+      user: "password"
+workers:
+  - name: "main"
+    address: "localhost"
+    port: 8080
+data:
+  - name: "default/medals-winners"
+    format: csv
+    connection:
+      type: s3
+      s3:
+        endpoint_url: "http://winterolympicsmedals.com/medals.csv"
+    transformations:
+      - action: "Redact"
+        description: "redact stuff"
+        columns:
+          - Event 
+        options:
+          redactValue: "XXXXX"
+  - name: "default/bank"
+    format: csv
+    connection:
+      type: s3
+      s3:
+        endpoint_url: "https://raw.githubusercontent.com/juliencohensolal/BankMarketing/master/rawData/bank-additional-full.csv"
+    transformations:
+      - action: "Redact"
+        description: "redact stuff"
+        columns:
+          - age
+          - job
+        options:
+          redactValue: "XXXXX"

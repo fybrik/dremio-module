@@ -1,0 +1,21 @@
+{{- if .Values.assets -}}
+data:
+{{- range $asset := .Values.assets }}
+  - name: {{ $asset.assetID | quote }}
+    {{- with index .args 0 }}
+    format: {{ .format }}
+    {{- if .connection.s3 }}
+    path: "{{ .connection.s3.bucket }}/{{ .connection.s3.object_key }}"
+    connection:
+      type: s3
+      s3:
+        endpoint_url: {{if not (contains "://" .connection.s3.endpoint)}}https://{{end}}{{ .connection.s3.endpoint }}
+    {{- end }}
+    {{- end -}}
+    {{- if $asset.transformations }}
+    transformations: {{ $asset.transformations | toJson | b64enc | quote }}
+    {{- end }}
+{{- end -}}
+{{- else -}}
+data: []
+{{- end -}}

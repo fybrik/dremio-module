@@ -1,0 +1,24 @@
+apiVersion: katalog.fybrik.io/v1alpha1
+kind: Asset
+metadata:
+  name: medals-winners
+spec:
+  secretRef: 
+    name: medals-winners
+  details:
+    dataFormat: csv
+    connection:
+      name: s3
+      s3:
+        endpoint: "http://winterolympicsmedals.com/medals.csv"
+        bucket: "bucket"
+        object_key: "medals.csv"
+  metadata:
+    name: "Medals Winners"
+    geography: theshire
+    tags:
+      finance: true
+    columns:
+      - name: age
+        tags:
+          sensitive: true

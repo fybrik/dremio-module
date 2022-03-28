@@ -1,0 +1,38 @@
+name: Test
+on: 
+  workflow_dispatch:
+    inputs:
+      kind-version:
+        required: true
+        default: 'kind19'
+      fybrik-version:
+        required: true
+        default: '0.6.0'
+      module-version:
+        required: true
+        default: '0.6.0'
+      cert-manager-version:
+        required: true
+        default: '1.6.2'
+      expected-output-version:
+        required: true
+        default: '0.6.1'
+
+
+
+env:
+  GO_VERSION: 1.17
+
+jobs:
+  test-module:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: Install Go
+      uses: actions/setup-go@v2
+      with:
+        go-version: ${{ env.GO_VERSION }}
+    - name: Install tools
+      run: make install-tools
+    - name: run-test
+      run: pushd hack && ./test_module.sh ${{ github.event.inputs.kind-version }} ${{ github.event.inputs.fybrik-version }} ${{ github.event.inputs.module-version }} ${{ github.event.inputs.cert-manager-version }} ${{ github.event.inputs.expected-output-version }}

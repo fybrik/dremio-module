@@ -1,0 +1,21 @@
+apiVersion: app.fybrik.io/v1alpha1
+kind: FybrikApplication
+metadata:
+  name: my-notebook 
+spec:
+  selector:
+   workloadSelector:
+     matchLabels: {
+       app: notebook
+     }
+  appInfo:
+    intent: "Fraud Detection"
+  data:
+    - dataSetID: "fybrik-notebook-sample/medals-winners"
+      requirements:
+        interface:
+          protocol: rest
+    - dataSetID: "fybrik-notebook-sample/bank"
+      requirements:
+        interface:
+          protocol: rest

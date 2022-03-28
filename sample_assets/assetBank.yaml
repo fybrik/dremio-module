@@ -1,0 +1,24 @@
+apiVersion: katalog.fybrik.io/v1alpha1
+kind: Asset
+metadata:
+  name: bank
+spec:
+  secretRef: 
+    name: bank
+  details:
+    dataFormat: csv
+    connection:
+      name: s3
+      s3:
+        endpoint: "https://raw.githubusercontent.com/juliencohensolal/BankMarketing/master/rawData/bank-additional-full.csv"
+        bucket: "bucket"
+        object_key: "bank.csv"
+  metadata:
+    name: "Bank Asset"
+    geography: theshire
+    tags:
+      finance: true
+    columns:
+      - name: age
+        tags:
+          PII: true
