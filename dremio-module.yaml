@@ -12,7 +12,7 @@ spec:
   chart:
     name: ghcr.io/mohammad-nassar10/dremio-module-chart:0.0.0
     values:
-      image.tag: main
+      imageChart.tag: main
   capabilities:
     - capability: read
       scope: workload

@@ -8,9 +8,9 @@ global:
 replicaCount: 1
 
 ## Module image
-image: 
+imageChart: 
   repository: ghcr.io/mohammad-nassar10/dremio-module
-  tag: latest
+  tag: main
   pullPolicy: Always
   pullSecret: null
 

@@ -8,9 +8,9 @@ metadata:
     app.kubernetes.io/instance: {{ .Release.Name }}
     app.kubernetes.io/managed-by: {{ .Release.Service }}
 spec:
-  type: {{ .Values.service.type }}
+  type: {{ .Values.serviceChart.type }}
   ports:
-    - port: {{ .Values.service.port }}
+    - port: {{ .Values.serviceChart.port }}
       targetPort: 8080
       protocol: TCP
       name: grpc

@@ -11,8 +11,8 @@
 # DOCKER_USERNAME docker registry  username
 
 
-HELM_VALUES ?= \
-	--set hello=world1
+HELM_VALUES ?= dremio-module/values.yaml
+	# --set hello=world1
 
 TEMP := /tmp
 CHART_LOCAL_PATH ?= dremio-module
@@ -33,8 +33,7 @@ endif
 
 .PHONY: helm-verify
 helm-verify: $(TOOLBIN)/helm
-	$(ABSTOOLBIN)/helm lint ${CHART_LOCAL_PATH}
-	$(ABSTOOLBIN)/helm install --dry-run ${HELM_RELEASE} ${CHART_LOCAL_PATH} ${HELM_VALUES}
+	$(ABSTOOLBIN)/helm install --dry-run ${HELM_RELEASE} ${CHART_LOCAL_PATH} -f ${HELM_VALUES}
 
 .PHONY: helm-uninstall
 helm-uninstall: $(TOOLBIN)/helm

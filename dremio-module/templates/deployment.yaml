@@ -27,9 +27,9 @@ spec:
       serviceAccountName: {{ include "dremio-module.fullname" . }}
       containers:
         - name: {{ .Chart.Name }}
-          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
-          {{- if .Values.image.pullPolicy }}
-          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          image: "{{ .Values.imageChart.repository }}:{{ .Values.imageChart.tag }}"
+          {{- if .Values.imageChart.pullPolicy }}
+          imagePullPolicy: {{ .Values.imageChart.pullPolicy }}
           {{- end }}
           ports:
             - name: grpc
