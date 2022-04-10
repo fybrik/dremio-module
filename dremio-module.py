@@ -14,12 +14,20 @@
   limitations under the License.
 """
 import argparse
+import base64
+import json
+import logging
 import certifi
 import sys
+import yaml
+import requests
+import pandas as pd
+
 
 from http.cookies import SimpleCookie
 from pyarrow import flight
 
+data_dict = {}
 
 class DremioClientAuthMiddlewareFactory(flight.ClientMiddlewareFactory):
     """A factory that creates DremioClientAuthMiddleware(s)."""
@@ -153,6 +161,21 @@ def parse_arguments():
     return parser.parse_args()
 
 
+def fetch_cols_from_query(query):
+    start = -1
+    end = -1
+    words = query.split()
+    for i, w in enumerate(words):
+        if w == 'SELECT':
+            start = i + 1
+        elif w == 'FROM':
+            end = i - 1
+    cols = words[start:end+1]
+    for i, c in enumerate(cols):
+        if c[-1] == ',':
+            cols[i] = c[:len(c) - 1]
+    return cols
+
 def connect_to_dremio_flight_server_endpoint(host, port, username, password, query,
                                              tls, certs, disable_server_verification, pat_or_auth_token,
                                              engine, session_properties):
@@ -160,34 +183,41 @@ def connect_to_dremio_flight_server_endpoint(host, port, username, password, que
     Connects to Dremio Flight server endpoint with the provided credentials.
     It also runs the query and retrieves the result set.
     """
+    with open("sample-conf.yaml", 'r') as stream:
+        content = yaml.safe_load(stream)
+        #logging.info(content)
+        for key,val in content.items():
+            if "data" in key:
+                for i in range(len(val)):
+                    data = val[i]
+                    connectionName = data["name"]
+                    name = connectionName.split("/")[1]
+                    format = data["format"]
+                    endpoint_url = data["connection"]["s3"]["endpoint_url"]
+                    transformations = base64.b64decode(data["transformations"])
+                    data_dict[name] = {'format':format, 'endpoint_url':endpoint_url, 'transformations':transformations}
+    print("The available datasets:\n")
+    for key in data_dict:
+        print("dataset name: {}\n".format(key))
+        for k in data_dict[key]:
+            print("    {}: {}\n".format(k, data_dict[key][k]))
+
+    print("gg columns {}\n".format(data_dict["bank"]["transformations"].decode("utf-8")))
+    transformations_bytes = data_dict["bank"]["transformations"]
+    transformations_json = json.loads(transformations_bytes.decode('utf-8'))
+    Remove_cols = transformations_json[0]["RedactAction"]["columns"]
+    Remove_cols.append('Category')
+    print(Remove_cols)
+
     try:
         # Default to use an unencrypted TCP connection.
         scheme = "grpc+tcp"
         connection_args = {}
 
-        if tls:
-            # Connect to the server endpoint with an encrypted TLS connection.
-            print('[INFO] Enabling TLS connection')
-            scheme = "grpc+tls"
-            if certs:
-                print('[INFO] Trusted certificates provided')
-                # TLS certificates are provided in a list of connection arguments.
-                with open(certs, "rb") as root_certs:
-                    connection_args["tls_root_certs"] = root_certs.read()
-            elif disable_server_verification:
-                # Connect to the server endpoint with server verification disabled.
-                print('[INFO] Disable TLS server verification.')
-                connection_args['disable_server_verification'] = disable_server_verification
-            else:
-                print('[ERROR] Trusted certificates must be provided to establish a TLS connection')
-                sys.exit()
 
         headers = session_properties
         if not headers:
             headers = []
-
-        if engine:
-            headers.append((b'routing_engine', engine.encode('utf-8')))
 
         # Two WLM settings can be provided upon initial authentication with the Dremio Server Flight Endpoint:
         # routing_tag
@@ -197,14 +227,7 @@ def connect_to_dremio_flight_server_endpoint(host, port, username, password, que
 
         client_cookie_middleware = CookieMiddlewareFactory()
 
-        if pat_or_auth_token:
-            client = flight.FlightClient("{}://{}:{}".format(scheme, host, port),
-                                         middleware=[client_cookie_middleware], **connection_args)
-
-            headers.append((b'authorization', "Bearer {}".format(pat_or_auth_token).encode('utf-8')))
-            print('[INFO] Authentication skipped until first request')
-
-        elif username and password:
+        if username and password:
             client_auth_middleware = DremioClientAuthMiddlewareFactory()
             client = flight.FlightClient("{}://{}:{}".format(scheme, host, port),
                                          middleware=[client_auth_middleware, client_cookie_middleware],
@@ -223,6 +246,13 @@ def connect_to_dremio_flight_server_endpoint(host, port, username, password, que
             # Construct FlightDescriptor for the query result set.
             flight_desc = flight.FlightDescriptor.for_command(query)
             print('[INFO] Query: ', query)
+            requested_cols = fetch_cols_from_query(query)
+            print('[INFO] Requested Cols: ', requested_cols)
+            for c in Remove_cols:
+                if c in requested_cols:
+                    requested_cols.remove(c)
+
+            print('[INFO] Requested Cols: ', requested_cols)
 
             # In addition to the bearer token, a query context can also
             # be provided as an entry of FlightCallOptions.
@@ -253,12 +283,113 @@ def connect_to_dremio_flight_server_endpoint(host, port, username, password, que
         raise
 
 
+
+
+import json
+import requests
+
+
+
+
+def api_get(server, endpoint=None, headers=None):
+    return json.loads(requests.get('{server}/api/v3/{endpoint}'.format(server=server, endpoint=endpoint), headers=headers).text)
+
+
+def api_post(server, endpoint=None, body=None, headers=None):
+    text = requests.request("POST", '{server}/api/v3/{endpoint}'.format(server=server, endpoint=endpoint), headers=headers, data=json.dumps(body)).text
+
+    # a post may return no data
+    if (text):
+        return json.loads(text)
+    else:
+        return None
+
+
+def api_put(server, endpoint=None, body=None, headers=None):
+    return requests.put('{server}/api/v3/{endpoint}'.format(server=server, endpoint=endpoint), headers=headers, data=json.dumps(body)).text
+
+
+def api_delete(server, endpoint=None, headers=None):
+    return requests.delete('{server}/api/v3/{endpoint}'.format(server=server, endpoint=endpoint), headers=headers)
+
+
+def login(server, username, password, headers=None):
+    # we login using the old api for now
+    loginData = {'userName': username, 'password': password}
+    response = requests.post('{server}/apiv2/login'.format(server=server), headers=headers, data=json.dumps(loginData))
+    print(response)
+    data = json.loads(response.text)
+
+    # retrieve the login token
+    token = data['token']
+    return {'Content-Type': 'application/json', 'Authorization': '_dremio{authToken}'.format(authToken=token)}
+
+
+
+
+
 if __name__ == "__main__":
-    # Parse the command line arguments.
-    args = parse_arguments()
-    # Connect to Dremio Arrow Flight server endpoint.
-    connect_to_dremio_flight_server_endpoint(args.hostname, args.port, args.username, args.password,
-                                             args.query, args.tls, args.trusted_certificates,
-                                             args.disable_server_verification, args.pat_or_auth_token,
-                                             args.engine, args.session_properties)
+
+    url = "http://localhost:9047/api/v3/catalog"
+
+    username = "XXXX"
+    password = "XXXX"
+    json_headers = {'content-type': 'application/json'}
+    dremioServer = 'http://localhost:9047'
+    auth_headers = login(dremioServer, username, password, json_headers)
+
+    # Create a new source from an s3 bucket
+    data_s3 = {
+        "entityType": "source",
+        "name": "testingS3",
+        "type": "S3",
+        "config": {
+            "accessKey": "XXXX",
+            "accessSecret": "XXXX",
+            "secure": "false",
+            "allowCreateDrop": "true",
+            "rootPath": "/",
+            "credentialType": "ACCESS_KEY",
+            "enableAsync": "true",
+            "compatibilityMode": "true",
+            "isCachingEnabled": "true",
+            "maxCacheSpacePct": 100,
+            "requesterPays": "false",
+            "enableFileStatusCheck": "true",
+            "propertyList": [
+                {"name": "fs.s3a.path.style.access", "value": "true"},
+                {"name": "fs.s3a.endpoint", "value": "s3.eu-de.cloud-object-storage.appdomain.cloud"},
+            ],
+        },
+    }
+
+    response = api_post(dremioServer, "catalog", data_s3, auth_headers)
+    print(response)
+
+
+    # Create a virtual dataset that represents the source dataset after applying the policies
+
+    # payloadSpace = "{\n    \"entityType\": \"space\",\n    \"name\": \"Space-api\"\n}"
+    # payloadVDS = "{\n  \"entityType\": \"dataset\",\n  \"path\": [\n    \"@mohammadtn\",\n\"test-iceberg-api1\" \n  ],\n\t\"type\": \"VIRTUAL_DATASET\",\n\t\"sql\": \"select * from \"table\" \",\n\t\"sqlContext\": [\"testingS3\", \"fybric-objectstorage-iceberg-demo\", \"warehouse\", \"db\"]\n}"
+    newVDSName = "test-iceberg-api3"
+    dataVDS = {
+        "entityType": "dataset",
+        "path": [
+            "Space-api",
+            newVDSName,
+        ],
+	    "type": "VIRTUAL_DATASET",
+	    "sql": 'select _c1 from "table" ',
+	    "sqlContext": ["testingS3", "fybric-objectstorage-iceberg-demo", "warehouse", "db"]
+    }
+    
+    # headers = {
+    #     'Authorization': "_dremiogavgbr3fnpm425qt5rikobgqj8",
+    #     'Content-Type': "application/json"
+    # }
+    # response = requests.request("POST", url, data=json.dumps(dataVDS), headers=headers)
+    response = api_post(dremioServer, "catalog", dataVDS, auth_headers)
+    print(response)
+
+   
 
