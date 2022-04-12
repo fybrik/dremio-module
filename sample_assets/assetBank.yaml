@@ -10,7 +10,7 @@ spec:
     connection:
       name: s3
       s3:
-        endpoint: "https://raw.githubusercontent.com/juliencohensolal/BankMarketing/master/rawData/bank-additional-full.csv"
+        endpoint: "s3.eu-de.cloud-object-storage.appdomain.cloud"
         bucket: "bucket"
         object_key: "bank.csv"
   metadata:

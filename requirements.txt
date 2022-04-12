@@ -1,6 +1,7 @@
 ###### Requirements without version specifiers ######
 certifi
 pandas
+requests
 
 ###### Requirements with version specifiers ######
 pyarrow==3.0.0
