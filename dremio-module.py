@@ -131,98 +131,6 @@ from pyarrow import flight
 
 data_dict = {}
 
-class DremioClientAuthMiddlewareFactory(flight.ClientMiddlewareFactory):
-    """A factory that creates DremioClientAuthMiddleware(s)."""
-
-    def __init__(self):
-        self.call_credential = []
-
-    def start_call(self, info):
-        return DremioClientAuthMiddleware(self)
-
-    def set_call_credential(self, call_credential):
-        self.call_credential = call_credential
-
-
-class DremioClientAuthMiddleware(flight.ClientMiddleware):
-    """
-    A ClientMiddleware that extracts the bearer token from 
-    the authorization header returned by the Dremio 
-    Flight Server Endpoint.
-
-    Parameters
-    ----------
-    factory : ClientHeaderAuthMiddlewareFactory
-        The factory to set call credentials if an
-        authorization header with bearer token is
-        returned by the Dremio server.
-    """
-
-    def __init__(self, factory):
-        self.factory = factory
-
-    def received_headers(self, headers):
-        auth_header_key = 'authorization'
-        authorization_header = []
-        for key in headers:
-            if key.lower() == auth_header_key:
-                authorization_header = headers.get(auth_header_key)
-        if not authorization_header:
-            raise Exception('Did not receive authorization header back from server.')
-        self.factory.set_call_credential([
-            b'authorization', authorization_header[0].encode('utf-8')])
-
-
-class CookieMiddlewareFactory(flight.ClientMiddlewareFactory):
-    """A factory that creates CookieMiddleware(s)."""
-
-    def __init__(self):
-        self.cookies = {}
-
-    def start_call(self, info):
-        return CookieMiddleware(self)
-
-
-class CookieMiddleware(flight.ClientMiddleware):
-    """
-    A ClientMiddleware that receives and retransmits cookies.
-    For simplicity, this does not auto-expire cookies.
-
-    Parameters
-    ----------
-    factory : CookieMiddlewareFactory
-        The factory containing the currently cached cookies.
-    """
-
-    def __init__(self, factory):
-        self.factory = factory
-
-    def received_headers(self, headers):
-        for key in headers:
-            if key.lower() == 'set-cookie':
-                cookie = SimpleCookie()
-                for item in headers.get(key):
-                    cookie.load(item)
-
-                self.factory.cookies.update(cookie.items())
-
-    def sending_headers(self):
-        if self.factory.cookies:
-            cookie_string = '; '.join("{!s}={!s}".format(key, val.value) for (key, val) in self.factory.cookies.items())
-            return {b'cookie': cookie_string.encode('utf-8')}
-        return {}
-
-
-class KVParser(argparse.Action):
-    def __call__(self, parser, namespace,
-                 values, option_string=None):
-        setattr(namespace, self.dest, list())
-          
-        for value in values:
-            # split it into key and value
-            key, value = value.split('=')
-            # insert into list as key-value tuples
-            getattr(namespace, self.dest).append((key.encode('utf-8'), value.encode('utf-8')))
 
 
 def parse_arguments():
@@ -278,111 +186,6 @@ def fetch_cols_from_query(query):
             cols[i] = c[:len(c) - 1]
     return cols
 
-def connect_to_dremio_flight_server_endpoint(host, port, username, password, query,
-                                             tls, certs, disable_server_verification, pat_or_auth_token,
-                                             engine, session_properties):
-    """
-    Connects to Dremio Flight server endpoint with the provided credentials.
-    It also runs the query and retrieves the result set.
-    """
-    with open("/etc/conf/conf.yaml", 'r') as stream:
-        content = yaml.safe_load(stream)
-        #logging.info(content)
-        for key,val in content.items():
-            if "data" in key:
-                for i in range(len(val)):
-                    data = val[i]
-                    connectionName = data["name"]
-                    name = connectionName.split("/")[1]
-                    format = data["format"]
-                    endpoint_url = data["connection"]["s3"]["endpoint_url"]
-                    transformations = base64.b64decode(data["transformations"])
-                    data_dict[name] = {'format':format, 'endpoint_url':endpoint_url, 'transformations':transformations}
-    print("The available datasets:\n")
-    for key in data_dict:
-        print("dataset name: {}\n".format(key))
-        for k in data_dict[key]:
-            print("    {}: {}\n".format(k, data_dict[key][k]))
-
-    print("gg columns {}\n".format(data_dict["bank"]["transformations"].decode("utf-8")))
-    transformations_bytes = data_dict["bank"]["transformations"]
-    transformations_json = json.loads(transformations_bytes.decode('utf-8'))
-    Remove_cols = transformations_json[0]["RedactAction"]["columns"]
-    Remove_cols.append('Category')
-    print(Remove_cols)
-
-    try:
-        # Default to use an unencrypted TCP connection.
-        scheme = "grpc+tcp"
-        connection_args = {}
-
-
-        headers = session_properties
-        if not headers:
-            headers = []
-
-        # Two WLM settings can be provided upon initial authentication with the Dremio Server Flight Endpoint:
-        # routing_tag
-        # routing_queue
-        headers.append((b'routing_tag', b'test-routing-tag'))
-        headers.append((b'routing_queue', b'Low Cost User Queries'))
-
-        client_cookie_middleware = CookieMiddlewareFactory()
-
-        if username and password:
-            client_auth_middleware = DremioClientAuthMiddlewareFactory()
-            client = flight.FlightClient("{}://{}:{}".format(scheme, host, port),
-                                         middleware=[client_auth_middleware, client_cookie_middleware],
-                                         **connection_args)
-
-            # Authenticate with the server endpoint.
-            bearer_token = client.authenticate_basic_token(username, password,
-                                                           flight.FlightCallOptions(headers=headers))
-            print('[INFO] Authentication was successful')
-            headers.append(bearer_token)
-        else:
-            print('[ERROR] Username/password or PAT/Auth token must be supplied.')
-            sys.exit()
-
-        if query:
-            # Construct FlightDescriptor for the query result set.
-            flight_desc = flight.FlightDescriptor.for_command(query)
-            print('[INFO] Query: ', query)
-            requested_cols = fetch_cols_from_query(query)
-            print('[INFO] Requested Cols: ', requested_cols)
-            for c in Remove_cols:
-                if c in requested_cols:
-                    requested_cols.remove(c)
-
-            print('[INFO] Requested Cols: ', requested_cols)
-
-            # In addition to the bearer token, a query context can also
-            # be provided as an entry of FlightCallOptions.
-            # options = flight.FlightCallOptions(headers=[
-            #     bearer_token,
-            #     (b'schema', b'test.schema')
-            # ])
-
-            # Retrieve the schema of the result set.
-            options = flight.FlightCallOptions(headers=headers)
-            schema = client.get_schema(flight_desc, options)
-            print('[INFO] GetSchema was successful')
-            print('[INFO] Schema: ', schema)
-
-            # Get the FlightInfo message to retrieve the Ticket corresponding
-            # to the query result set.
-            flight_info = client.get_flight_info(flight.FlightDescriptor.for_command(query), options)
-            print('[INFO] GetFlightInfo was successful')
-            print('[INFO] Ticket: ', flight_info.endpoints[0].ticket)
-
-            # Retrieve the result set as a stream of Arrow record batches.
-            reader = client.do_get(flight_info.endpoints[0].ticket, options)
-            print('[INFO] Reading query results from Dremio')
-            print(reader.read_pandas())
-
-    except Exception as exception:
-        print("[ERROR] Exception: {}".format(repr(exception)))
-        raise
 
 #################################################################################################
 def get_policies_from_conf():
@@ -461,8 +264,8 @@ def login(server, username, password, headers=None):
 
 if __name__ == "__main__":
 
-    username = "adminUser"
-    password = "adminPwd"
+    username = "mohammadtn1"
+    password = "Mtn#2061891"
     json_headers = {'content-type': 'application/json'}
     # dremioServer = 'http://localhost:9047'
     dremioServer = 'http://dremio-client.fybrik-blueprints.svc.cluster.local:9047'
@@ -614,7 +417,7 @@ if __name__ == "__main__":
             newVDSName,
         ],
 	    "type": "VIRTUAL_DATASET",
-	    "sql": 'select * from "table"',
+	    "sql": sql_vds,
 	    "sqlContext": [source_name, "fybric-objectstorage-iceberg-demo", "warehouse", "db"]
     }
     
@@ -624,7 +427,33 @@ if __name__ == "__main__":
     # }
     # response = requests.request("POST", url, data=json.dumps(dataVDS), headers=headers)
     response = api_post(dremioServer, "catalog", dataVDS, auth_headers)
+    print("VDS")
+    print(response)
+
+    # Add a new user
+    dataNewUser = {
+        "name": "newUser",
+        "firstName": "first",
+        "password": "testpassword123",
+    }
+    response = api_post(dremioServer, "user", dataNewUser, auth_headers)
+    print("new user")
     print(response)
 
    
 ############################################
+# curl -X POST --location "http://localhost:9047/api/v3/user" \
+#     -H "Authorization:_dremiorah9dul2ncrol0khug88qchbhu" \
+#     -H "Content-Type: application/json" \
+#     -H "Accept: application/json" \
+#     -d "{\"name\":  \"test_user2\", \"firstName\": \"first1\", \"password\": \"testpassword123\", \"id\":  \"d4f430eb-af38-4514-8fed-226d1ddbea6a\"}"
+
+# curl -X GET --location "http://localhost:9047/api/v3/test_user2/d4f430eb-af38-4514-8fed-226d1ddbea6a/privileges" \
+#     -H "Authorization: _dremiorah9dul2ncrol0khug88qchbhu" \
+#     -H "Content-Type: application/json" \
+#     -H "Accept: application/json"
+
+#     curl -X GET --location "http://localhost:9047/api/v3/grant?grantType=SPACE" \
+#     -H "Authorization: _dremiorah9dul2ncrol0khug88qchbhu" \
+#     -H "Content-Type: application/json" \
+#     -H "Accept: application/json"
