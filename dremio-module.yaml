@@ -24,7 +24,7 @@ spec:
       supportedInterfaces:
         - source:
             protocol: s3
-            dataformat: parquet
+            dataformat: iceberg
         - source:
             protocol: s3
             dataformat: csv

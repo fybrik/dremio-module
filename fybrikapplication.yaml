@@ -11,11 +11,7 @@ spec:
   appInfo:
     intent: "Fraud Detection"
   data:
-    - dataSetID: "fybrik-notebook-sample/medals-winners"
-      requirements:
-        interface:
-          protocol: rest
-    - dataSetID: "fybrik-notebook-sample/bank"
+    - dataSetID: "fybrik-notebook-sample/iceberg-dataset"
       requirements:
         interface:
           protocol: rest

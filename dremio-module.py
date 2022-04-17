@@ -148,25 +148,6 @@ def parse_arguments():
                         default="dremio")
     parser.add_argument('-pass', '--password', type=str, help='Dremio password. Defaults to \"dremio123\".',
                         default="dremio123")
-    parser.add_argument('-pat', '--personalAccessToken', '-authToken', '--authToken', dest='pat_or_auth_token', type=str,
-                        help="Either a Personal Access Token or an OAuth2 Token.",
-                        required=False)
-    parser.add_argument('-query', '--sqlQuery', dest="query", type=str,
-                        help='SQL query to test',
-                        required=True)
-    parser.add_argument('-tls', '--tls', dest='tls', help='Enable encrypted connection. Defaults to False.',
-                        default=False, action='store_true')
-    parser.add_argument('-dsv', '--disableServerVerification', dest='disable_server_verification', type=bool,
-                        help='Disable TLS server verification. Defaults to False.',
-                        default=False)
-    parser.add_argument('-certs', '--trustedCertificates', dest='trusted_certificates', type=str,
-                        help='Path to trusted certificates for encrypted connection. Defaults to system certificates.',
-                        default=certifi.where())
-    parser.add_argument('-sp', '--sessionProperty', dest='session_properties',
-                        help="Key value pairs of SessionProperty, example: -sp schema=\'Samples.\"samples.dremio.com\"' -sp key=value",
-                        required=False, nargs='*', action=KVParser)
-    parser.add_argument('-engine', '--engine', type=str, help='The specific engine to run against.',
-                        required=False)
 
     return parser.parse_args()
 
@@ -192,36 +173,39 @@ def get_policies_from_conf():
     with open("/etc/conf/conf.yaml", 'r') as stream:
         content = yaml.safe_load(stream)
         #logging.info(content)
-        for key,val in content.items():
+        for key, val in content.items():
             if "data" in key:
                 for i in range(len(val)):
                     data = val[i]
-                    connectionName = data["name"]
-                    name = connectionName.split("/")[1]
+                    dataset_id = data["name"]
+                    name = dataset_id.split("/")[1]
                     format = data["format"]
+                    path = data["path"]
                     endpoint_url = data["connection"]["s3"]["endpoint_url"]
                     vault_credentials = data["connection"]["s3"]["vault_credentials"]
+                    creds = get_credentials_from_vault(vault_credentials, dataset_id)
                     transformations = base64.b64decode(data["transformations"])
-                    data_dict[name] = {'format':format, 'endpoint_url':endpoint_url, 'transformations':transformations}
-    # print("The available datasets:\n")
-    # for key in data_dict:
-    #     print("dataset name: {}\n".format(key))
-    #     for k in data_dict[key]:
-    #         print("    {}: {}\n".format(k, data_dict[key][k]))
+                    transformations_json = json.loads(transformations.decode('utf-8'))
+                    transformation = transformations_json[0]['name']
+                    print(transformations_json)
+                    transformation_cols = transformations_json[0][transformation]["columns"]
+                    data_dict[name] = {'format': format, 'endpoint_url': endpoint_url, 'path': path, 'transformation': transformation, 'transformation_cols': transformation_cols, 'creds': creds}
 
-    # print("gg columns {}\n".format(data_dict["bank"]["transformations"].decode("utf-8")))
-    transformations_bytes = data_dict["bank"]["transformations"]
-    transformations_json = json.loads(transformations_bytes.decode('utf-8'))
-    transformation_cols = transformations_json[0]["RemoveAction"]["columns"]
-    transformation = "RemoveCols"
+    # transformations_json = json.loads(transformations.decode('utf-8'))
+    # # transformation_cols = transformations_json[0]["RemoveAction"]["columns"]
+    # print("transformation cols")
+    # transformation = transformations_json[0]['name']
+    # print(transformations_json)
+    # transformation_cols = transformations_json[0][transformation]["columns"]
 
-    # Get credintials
-    print("vault credentials = {}\n".format(vault_credentials))
-    creds = get_credentials_from_vault(vault_credentials, "fybrik-notebook-sample/bank")
-    print(creds)
-    # get_raw_secret_from_vault(jwt, secret_path, vault_address, vault_auth, role, datasetID)
+    # # Get credintials
+    # print("vault credentials = {}\n".format(vault_credentials))
+    # creds = get_credentials_from_vault(vault_credentials, "fybrik-notebook-sample/bank")
+    # print(creds)
+    # # get_raw_secret_from_vault(jwt, secret_path, vault_address, vault_auth, role, datasetID)
 
-    return (transformation, transformation_cols, creds, endpoint_url)
+    # return (data_dict[name], transformation, transformation_cols)
+    return data_dict[name]
 
 
 def api_get(server, endpoint=None, headers=None, body=None):
@@ -264,8 +248,8 @@ def login(server, username, password, headers=None):
 
 if __name__ == "__main__":
 
-    username = "mohammadtn1"
-    password = "Mtn#2061891"
+    username = "adminUser"
+    password = "adminPwd1"
     json_headers = {'content-type': 'application/json'}
     # dremioServer = 'http://localhost:9047'
     dremioServer = 'http://dremio-client.fybrik-blueprints.svc.cluster.local:9047'
@@ -280,7 +264,7 @@ if __name__ == "__main__":
         "lastName": "admin",
         "email": "test@test.com",
         "createdAt": 1526186430755,
-        "password": "adminPwd",
+        "password": "adminPwd1",
     }
     headers = {'Content-Type': 'application/json', 'Authorization': '_dremionull'}
     # response = api_post(dremioServer, "user", data_user, headers)
@@ -294,15 +278,22 @@ if __name__ == "__main__":
 
 
     # Get the dataset details from configuration
-    transformation, transformation_cols, creds, endpoint = get_policies_from_conf()
+    # transformation, transformation_cols, creds, endpoint = get_policies_from_conf()
+    parse_conf = get_policies_from_conf()
+    transformation = parse_conf['transformation']
+    transformation_cols = parse_conf['transformation_cols']
+    creds = parse_conf['creds']
+    endpoint = parse_conf['endpoint_url']
+    path = parse_conf['path']
     print("conf parse")
     print(transformation)
     print(transformation_cols)
     print(creds[0])
     print(endpoint)
+    print(path)
 
     # Create a new source from an s3 bucket
-    source_name = "testingS3"
+    source_name = "testingS4"
     data_s3 = {
         "entityType": "source",
         "name": source_name,
@@ -327,42 +318,42 @@ if __name__ == "__main__":
         },
     }
 
-    response = api_post(dremioServer, "catalog", data_s3, auth_headers)
-    print("new source")
-    print(response)
+    # response = api_post(dremioServer, "catalog", data_s3, auth_headers)
+    # print("new source")
+    # print(response)
 
-    # Get data folder path
-    print("gg")
-    response = api_get(dremioServer, endpoint="catalog/by-path/{}/fybric-objectstorage-iceberg-demo/warehouse/db/table".format(source_name), headers=auth_headers)
-    print("get path")
-    print(response)
+    # # Get data folder path
+    # response = api_get(dremioServer, endpoint="catalog/by-path/{name}/{path}".format(name=source_name, path=path), headers=auth_headers)
+    # print("get path")
+    # print(response)
 
     # Promote a folder to dataset
+    path_list = path.split('/')
+    print("gg")
+    path_list = [source_name] + path_list
+    print(path_list)
     dataPromote = {
         "entityType": "dataset",
-        "id": "dremio:/" + source_name + "/fybric-objectstorage-iceberg-demo/warehouse/db/table",
-        "path": [
-    	    source_name,
-            "fybric-objectstorage-iceberg-demo",
-    	    "warehouse",
-    	    "db",
-    	    "table"
-    	],
-    	
+        "id": "dremio:/" + source_name + "/" + path,
+        "path": path_list,
         "type": "PHYSICAL_DATASET",
         "format": {
             "type": "Iceberg"
         }
     }
-    response = api_post(dremioServer, "catalog/dremio%3A%2F" + source_name + "%2Ffybric-objectstorage-iceberg-demo%2Fwarehouse%2Fdb%2Ftable", dataPromote, auth_headers)
-    print("promote")
+    # promote_url = source_name + '%2F' + '%2F'.join(path_list[1:])
+    # print(promote_url)
+    # response = api_post(dremioServer, "catalog/dremio%3A%2F" + promote_url, dataPromote, auth_headers)
+    # print("promote")
     print(response)
 
 
     # Get the columns of the new source
+    sql_path = source_name + '"."' + '"."'.join(path_list[1:]) + '"'
+    print(sql_path)
     print("dataSQL")
     dataSQL = {
-        "sql": 'SELECT * FROM "' + source_name + '"."fybric-objectstorage-iceberg-demo"."warehouse"."db"."table" LIMIT 0'
+        "sql": 'SELECT * FROM "' + sql_path + 'LIMIT 0'
     }
     response = api_post(dremioServer, "sql", dataSQL, auth_headers)
     print(response.get("id"))
@@ -418,7 +409,7 @@ if __name__ == "__main__":
         ],
 	    "type": "VIRTUAL_DATASET",
 	    "sql": sql_vds,
-	    "sqlContext": [source_name, "fybric-objectstorage-iceberg-demo", "warehouse", "db"]
+	    "sqlContext": path_list
     }
     
     # headers = {
@@ -439,21 +430,3 @@ if __name__ == "__main__":
     response = api_post(dremioServer, "user", dataNewUser, auth_headers)
     print("new user")
     print(response)
-
-   
-############################################
-# curl -X POST --location "http://localhost:9047/api/v3/user" \
-#     -H "Authorization:_dremiorah9dul2ncrol0khug88qchbhu" \
-#     -H "Content-Type: application/json" \
-#     -H "Accept: application/json" \
-#     -d "{\"name\":  \"test_user2\", \"firstName\": \"first1\", \"password\": \"testpassword123\", \"id\":  \"d4f430eb-af38-4514-8fed-226d1ddbea6a\"}"
-
-# curl -X GET --location "http://localhost:9047/api/v3/test_user2/d4f430eb-af38-4514-8fed-226d1ddbea6a/privileges" \
-#     -H "Authorization: _dremiorah9dul2ncrol0khug88qchbhu" \
-#     -H "Content-Type: application/json" \
-#     -H "Accept: application/json"
-
-#     curl -X GET --location "http://localhost:9047/api/v3/grant?grantType=SPACE" \
-#     -H "Authorization: _dremiorah9dul2ncrol0khug88qchbhu" \
-#     -H "Content-Type: application/json" \
-#     -H "Accept: application/json"

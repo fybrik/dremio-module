@@ -1,11 +1,17 @@
 package dataapi.authz
 
-import data.data_policies as dp
+rule[{"action": {"name":"RemoveAction", "columns": column_names}, "policy": description}] {
+  description := "Remove columns tagged as PII in datasets tagged with finance = true"
+  input.action.actionType == "read"
+  input.resource.metadata.tags.finance
+  column_names := [input.resource.metadata.columns[i].name | input.resource.metadata.columns[i].tags.PII]
+  count(column_names) > 0
+}
 
-transform[action] {
-  description := "Redact sensitive columns in finance datasets"
-  dp.AccessType() == "READ"
-  dp.dataset_has_tag("finance")
-  column_names := dp.column_with_any_name({"age"})
-  action = dp.build_redact_column_action(column_names[_], dp.build_policy_from_description(description))
+rule[{"action": {"name":"RemoveAction", "columns": column_names}, "policy": description}] {
+  description := "Remove columns tagged as sensitive in datasets tagged with finance = true"
+  input.action.actionType == "read"
+  input.resource.metadata.tags.finance
+  column_names := [input.resource.metadata.columns[i].name | input.resource.metadata.columns[i].tags.sensitive]
+  count(column_names) > 0
 }
