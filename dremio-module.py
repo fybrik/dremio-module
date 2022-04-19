@@ -254,10 +254,6 @@ if __name__ == "__main__":
     # dremioServer = 'http://localhost:9047'
     dremioServer = 'http://dremio-client.fybrik-blueprints.svc.cluster.local:9047'
 
-    # Create a user
-    # curl 'http://localhost:9047/apiv2/bootstrap/firstuser' -X PUT \
-    #   -H 'Authorization: _dremionull' -H 'Content-Type: application/json' \
-    #  --data-binary '{"userName":"banana","firstName":"banana","lastName":"banana","email":"banana@banana.com","createdAt":1526186430755,"password":"bananas4ever"}'
     data_user = {
         "userName": "adminUser",
         "firstName": "user",
@@ -267,7 +263,6 @@ if __name__ == "__main__":
         "password": "adminPwd1",
     }
     headers = {'Content-Type': 'application/json', 'Authorization': '_dremionull'}
-    # response = api_post(dremioServer, "user", data_user, headers)
     response = requests.request("PUT", 'http://dremio-client.fybrik-blueprints.svc.cluster.local:9047/apiv2/bootstrap/firstuser', data=json.dumps(data_user), headers=headers)
     print("register user")
     print(response.text)
@@ -293,7 +288,7 @@ if __name__ == "__main__":
     print(path)
 
     # Create a new source from an s3 bucket
-    source_name = "testingS4"
+    source_name = "sample-iceberg"
     data_s3 = {
         "entityType": "source",
         "name": source_name,
@@ -318,18 +313,17 @@ if __name__ == "__main__":
         },
     }
 
-    # response = api_post(dremioServer, "catalog", data_s3, auth_headers)
-    # print("new source")
-    # print(response)
+    response = api_post(dremioServer, "catalog", data_s3, auth_headers)
+    print("new source")
+    print(response)
 
-    # # Get data folder path
-    # response = api_get(dremioServer, endpoint="catalog/by-path/{name}/{path}".format(name=source_name, path=path), headers=auth_headers)
-    # print("get path")
-    # print(response)
+    # Get data folder path
+    response = api_get(dremioServer, endpoint="catalog/by-path/{name}/{path}".format(name=source_name, path=path), headers=auth_headers)
+    print("get path")
+    print(response)
 
     # Promote a folder to dataset
     path_list = path.split('/')
-    print("gg")
     path_list = [source_name] + path_list
     print(path_list)
     dataPromote = {
@@ -341,10 +335,10 @@ if __name__ == "__main__":
             "type": "Iceberg"
         }
     }
-    # promote_url = source_name + '%2F' + '%2F'.join(path_list[1:])
-    # print(promote_url)
-    # response = api_post(dremioServer, "catalog/dremio%3A%2F" + promote_url, dataPromote, auth_headers)
-    # print("promote")
+    promote_url = source_name + '%2F' + '%2F'.join(path_list[1:])
+    print(promote_url)
+    response = api_post(dremioServer, "catalog/dremio%3A%2F" + promote_url, dataPromote, auth_headers)
+    print("promote")
     print(response)
 
 
@@ -373,8 +367,6 @@ if __name__ == "__main__":
 
 
 
-    
-
     # Get the sql query from the policies
     request_cols = [col for col in col_names if col not in transformation_cols]
     print("requested_cols")
@@ -397,10 +389,8 @@ if __name__ == "__main__":
     response = api_post(dremioServer, "catalog", payloadSpace, auth_headers)
     print(response)
     
-    # Create a virtual dataset that represents the source dataset after applying the policies
-    
-    # payloadVDS = "{\n  \"entityType\": \"dataset\",\n  \"path\": [\n    \"@mohammadtn\",\n\"test-iceberg-api1\" \n  ],\n\t\"type\": \"VIRTUAL_DATASET\",\n\t\"sql\": \"select * from \"table\" \",\n\t\"sqlContext\": [\"testingS3\", \"fybric-objectstorage-iceberg-demo\", \"warehouse\", \"db\"]\n}"
-    newVDSName = "test-iceberg-api4"
+    # Create a virtual dataset that represents the source dataset after applying the policies    
+    newVDSName = "sample-iceberg-vds"
     dataVDS = {
         "entityType": "dataset",
         "path": [
@@ -412,11 +402,6 @@ if __name__ == "__main__":
 	    "sqlContext": path_list
     }
     
-    # headers = {
-    #     'Authorization': "_dremiogavgbr3fnpm425qt5rikobgqj8",
-    #     'Content-Type': "application/json"
-    # }
-    # response = requests.request("POST", url, data=json.dumps(dataVDS), headers=headers)
     response = api_post(dremioServer, "catalog", dataVDS, auth_headers)
     print("VDS")
     print(response)
