@@ -1,28 +1,14 @@
-"""
-  Copyright (C) 2017-2021 Dremio Corporation
-
-  Licensed under the Apache License, Version 2.0 (the "License");
-  you may not use this file except in compliance with the License.
-  You may obtain a copy of the License at
-
-      http://www.apache.org/licenses/LICENSE-2.0
-
-  Unless required by applicable law or agreed to in writing, software
-  distributed under the License is distributed on an "AS IS" BASIS,
-  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-  See the License for the specific language governing permissions and
-  limitations under the License.
-"""
-
-##############################################################
-#
-# Copyright 2020 IBM Corp.
-# SPDX-License-Identifier: Apache-2.0
-#
-
-# from fybrik_python_logging import logger, Error, DataSetID, ForUser
+import argparse
+from asyncio import LimitOverrunError
+import base64
+import json
+from time import sleep
+import yaml
 import requests
+# from python.vault.fybrik_python_vault import get_jwt_from_file, get_raw_secret_from_vault
+from fybrik_python_logging import logger, DataSetID, ForUser, Error
 
+#########################
 def get_jwt_from_file(file_name):
     """
     Getting a jwt from a file.
@@ -34,104 +20,51 @@ def get_jwt_from_file(file_name):
 def vault_jwt_auth(jwt, vault_address, vault_path, role, datasetID):
     """Authenticate against Vault using a JWT token (i.e., k8s sa token)"""
     full_auth_path = vault_address + vault_path
-    # logger.trace('authenticating against vault using a JWT token',
-    #     extra={'full_auth_path': str(full_auth_path),
-    #            DataSetID: datasetID})
+    logger.trace('authenticating against vault using a JWT token',
+        extra={'full_auth_path': str(full_auth_path),
+               DataSetID: datasetID})
     json = {"jwt": jwt, "role": role}
     response = requests.post(full_auth_path, json=json)
     if response.status_code == 200:
         return response.json()
-    # logger.error("vault authentication failed",
-    #     extra={Error: str(response.status_code) + ': ' + str(response.json()),
-    #            DataSetID: datasetID, ForUser: True})
+    logger.error("vault authentication failed",
+        extra={Error: str(response.status_code) + ': ' + str(response.json()),
+               DataSetID: datasetID, ForUser: True})
     return None
 
 def get_raw_secret_from_vault(jwt, secret_path, vault_address, vault_path, role, datasetID):
     """Get a raw secret from vault by providing a valid jwt token"""
     vault_auth_response = vault_jwt_auth(jwt, vault_address, vault_path, role, datasetID)
     if vault_auth_response is None:
-        # logger.error("Empty vault authorization response",
-        #              extra={DataSetID: datasetID, ForUser: True})
+        logger.error("Empty vault authorization response",
+                     extra={DataSetID: datasetID, ForUser: True})
         return None
     if not "auth" in vault_auth_response or not "client_token" in vault_auth_response["auth"]:
-        # logger.error("Malformed vault authorization response",
-        #              extra={DataSetID: datasetID, ForUser: True})
+        logger.error("Malformed vault authorization response",
+                     extra={DataSetID: datasetID, ForUser: True})
         return None
     client_token = vault_auth_response["auth"]["client_token"]
     secret_full_path = vault_address + secret_path
     response = requests.get(secret_full_path, headers={"X-Vault-Token" : client_token})
-    # logger.debug('Response received from vault when accessing credentials: ' + str(response.status_code),
-    #     extra={'credentials_path': str(secret_full_path),
-    #            DataSetID: datasetID, ForUser: True})
+    logger.debug('Response received from vault when accessing credentials: ' + str(response.status_code),
+        extra={'credentials_path': str(secret_full_path),
+               DataSetID: datasetID, ForUser: True})
     if response.status_code == 200:
         response_json = response.json()
         if 'data' in response_json:
             return response_json['data']
-        # else:
-            # logger.error("Malformed secret response. Expected the 'data' field in JSON",
-            #              extra={DataSetID: datasetID, ForUser: True})
-    # else:
-        # logger.error("Error reading credentials from vault",
-        #     extra={Error: str(response.status_code) + ': ' + str(response.json()),
-        #            DataSetID: datasetID, ForUser: True})
+        else:
+            logger.error("Malformed secret response. Expected the 'data' field in JSON",
+                         extra={DataSetID: datasetID, ForUser: True})
+    else:
+        logger.error("Error reading credentials from vault",
+            extra={Error: str(response.status_code) + ': ' + str(response.json()),
+                   DataSetID: datasetID, ForUser: True})
     return None
+#########################    
 
-def get_credentials_from_vault(vault_credentials, datasetID):
-    jwt_file_path = vault_credentials.get('jwt_file_path', '/var/run/secrets/kubernetes.io/serviceaccount/token')
-    jwt = get_jwt_from_file(jwt_file_path)
-    vault_address = vault_credentials.get('address', 'https://localhost:8200')
-    secret_path = vault_credentials.get('secretPath', '/v1/secret/data/cred')
-    vault_auth = vault_credentials.get('authPath', '/v1/auth/kubernetes/login')
-    role = vault_credentials.get('role', 'demo')
-    # logger.trace('getting vault credentials',
-    #     extra={'jwt_file_path': str(jwt_file_path),
-    #            'vault_address': str(vault_address),
-    #            'secret_path': str(secret_path),
-    #            'vault_auth': str(vault_auth),
-    #            'role': str(role),
-    #            DataSetID: datasetID,
-    #            ForUser: True})
-    credentials = get_raw_secret_from_vault(jwt, secret_path, vault_address, vault_auth, role, datasetID)
-    if not credentials:
-        raise ValueError("Vault credentials are missing")
-    if 'access_key' in credentials and 'secret_key' in credentials:
-        if credentials['access_key'] and credentials['secret_key']:
-            return credentials['access_key'], credentials['secret_key']
-        # else:
-        #     if not credentials['access_key']:
-        #         # logger.error("'access_key' must be non-empty",
-        #         #              extra={DataSetID: datasetID, ForUser: True})
-        #     if not credentials['secret_key']:
-        #         # logger.error("'secret_key' must be non-empty",
-        #         #              extra={DataSetID: datasetID, ForUser: True})
-    # logger.error("Expected both 'access_key' and 'secret_key' fields in vault secret",
-    #              extra={DataSetID: datasetID, ForUser: True})
-    raise ValueError("Vault credentials are missing")
-
-##############################################################
-
-
-
-
-import argparse
-import base64
-import json
-import logging
-from time import sleep
-import certifi
-import sys
-import yaml
-import requests
-import pandas as pd
-# from .vault import get_credentials_from_vault
-
-
-from http.cookies import SimpleCookie
-from pyarrow import flight
 
 data_dict = {}
-
-
 
 def parse_arguments():
     """
@@ -168,7 +101,31 @@ def fetch_cols_from_query(query):
     return cols
 
 
-#################################################################################################
+def get_credentials_from_vault(vault_credentials, datasetID):
+    jwt_file_path = vault_credentials.get('jwt_file_path', '/var/run/secrets/kubernetes.io/serviceaccount/token')
+    jwt = get_jwt_from_file(jwt_file_path)
+    vault_address = vault_credentials.get('address', 'https://localhost:8200')
+    secret_path = vault_credentials.get('secretPath', '/v1/secret/data/cred')
+    vault_auth = vault_credentials.get('authPath', '/v1/auth/kubernetes/login')
+    role = vault_credentials.get('role', 'demo')
+    credentials = get_raw_secret_from_vault(jwt, secret_path, vault_address, vault_auth, role, datasetID)
+    if not credentials:
+        raise ValueError("Vault credentials are missing")
+    if 'access_key' in credentials and 'secret_key' in credentials:
+        if credentials['access_key'] and credentials['secret_key']:
+            return credentials['access_key'], credentials['secret_key']
+        else:
+            if not credentials['access_key']:
+                logger.error("'access_key' must be non-empty",
+                             extra={DataSetID: datasetID, ForUser: True})
+            if not credentials['secret_key']:
+                logger.error("'secret_key' must be non-empty",
+                             extra={DataSetID: datasetID, ForUser: True})
+    logger.error("Expected both 'access_key' and 'secret_key' fields in vault secret",
+                 extra={DataSetID: datasetID, ForUser: True})
+    raise ValueError("Vault credentials are missing")
+
+
 def get_policies_from_conf():
     with open("/etc/conf/conf.yaml", 'r') as stream:
         content = yaml.safe_load(stream)
@@ -244,8 +201,6 @@ def login(server, username, password, headers=None):
 
 
 
-
-
 if __name__ == "__main__":
 
     username = "adminUser"
@@ -263,7 +218,7 @@ if __name__ == "__main__":
         "password": "adminPwd1",
     }
     headers = {'Content-Type': 'application/json', 'Authorization': '_dremionull'}
-    response = requests.request("PUT", 'http://dremio-client.fybrik-blueprints.svc.cluster.local:9047/apiv2/bootstrap/firstuser', data=json.dumps(data_user), headers=headers)
+    response = requests.request("PUT", dremioServer + '/apiv2/bootstrap/firstuser', data=json.dumps(data_user), headers=headers)
     print("register user")
     print(response.text)
 
@@ -280,6 +235,10 @@ if __name__ == "__main__":
     creds = parse_conf['creds']
     endpoint = parse_conf['endpoint_url']
     path = parse_conf['path']
+    if "://" in endpoint:
+        endpoint = endpoint.split("://")[1]
+
+
     print("conf parse")
     print(transformation)
     print(transformation_cols)
@@ -288,7 +247,7 @@ if __name__ == "__main__":
     print(path)
 
     # Create a new source from an s3 bucket
-    source_name = "sample-iceberg"
+    source_name = "sample-iceberg6"
     data_s3 = {
         "entityType": "source",
         "name": source_name,
@@ -377,7 +336,7 @@ if __name__ == "__main__":
     for col in request_cols[1:]:
         add_col = ", " + col
         requested_cols_string += add_col
-    sql_vds = "select " + requested_cols_string + ' from "table"'
+    sql_vds = "select " + requested_cols_string + ' from "' + sql_path
     print("sql_vds")
     print(sql_vds)
 

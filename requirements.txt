@@ -2,6 +2,7 @@
 certifi
 pandas
 requests
+fybrik_python_logging
 
 ###### Requirements with version specifiers ######
 pyarrow==3.0.0

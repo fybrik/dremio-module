@@ -38,12 +38,14 @@ tolerations: []
 
 imagePullSecrets: []
 
+
+
 # Dremio Coordinator
 coordinator:
   # CPU & Memory
   # Memory allocated to each coordinator, expressed in MB.
   # CPU allocated to each coordinator, expressed in CPU cores.
-  cpu: 2
+  cpu: 1
   memory: 12280
 
   # This count is used for slave coordinators only.
@@ -127,13 +129,17 @@ coordinator:
       # To create a TLS secret, use the following command:
       # kubectl create secret tls ${TLS_SECRET_NAME} --key ${KEY_FILE} --cert ${CERT_FILE}
       secret: dremio-tls-secret-flight
-
+  extraStartParams: >-
+      -Ddremio.debug.sysopt.dremio.iceberg.enabled=true
+      -Ddremio.debug.sysopt.dremio.execution.support_unlimited_splits=true
+  # dremio.iceberg.enabled: true
+  # dremio.execution.support_unlimited_splits: true
 # Dremio Executor
 executor:
   # CPU & Memory
   # Memory allocated to each executor, expressed in MB.
   # CPU allocated to each executor, expressed in CPU cores.
-  cpu: 2
+  cpu: 1
   memory: 4096
 
   # Engines

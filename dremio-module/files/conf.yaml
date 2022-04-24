@@ -8,7 +8,7 @@ data:
     connection:
       type: s3
       s3:
-        endpoint_url: {{if not (contains "://" .source.connection.s3.endpoint)}}https://{{end}}{{ .source.connection.s3.endpoint }}
+        endpoint_url: {{ .source.connection.s3.endpoint }}
         {{- range $k, $v := .source.vault }}
         {{- if or (eq $k "read") (eq $k "write") }}
         vault_credentials:
