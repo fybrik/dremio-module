@@ -1,11 +1,11 @@
 import argparse
-from asyncio import LimitOverrunError
 import base64
 import json
+import socket
 from time import sleep
 import yaml
 import requests
-# from python.vault.fybrik_python_vault import get_jwt_from_file, get_raw_secret_from_vault
+# from fybrik_python_vault import get_jwt_from_file, get_raw_secret_from_vault
 from fybrik_python_logging import logger, DataSetID, ForUser, Error
 
 #########################
@@ -148,20 +148,6 @@ def get_policies_from_conf():
                     transformation_cols = transformations_json[0][transformation]["columns"]
                     data_dict[name] = {'format': format, 'endpoint_url': endpoint_url, 'path': path, 'transformation': transformation, 'transformation_cols': transformation_cols, 'creds': creds}
 
-    # transformations_json = json.loads(transformations.decode('utf-8'))
-    # # transformation_cols = transformations_json[0]["RemoveAction"]["columns"]
-    # print("transformation cols")
-    # transformation = transformations_json[0]['name']
-    # print(transformations_json)
-    # transformation_cols = transformations_json[0][transformation]["columns"]
-
-    # # Get credintials
-    # print("vault credentials = {}\n".format(vault_credentials))
-    # creds = get_credentials_from_vault(vault_credentials, "fybrik-notebook-sample/bank")
-    # print(creds)
-    # # get_raw_secret_from_vault(jwt, secret_path, vault_address, vault_auth, role, datasetID)
-
-    # return (data_dict[name], transformation, transformation_cols)
     return data_dict[name]
 
 
@@ -209,6 +195,22 @@ if __name__ == "__main__":
     # dremioServer = 'http://localhost:9047'
     dremioServer = 'http://dremio-client.fybrik-blueprints.svc.cluster.local:9047'
 
+    # wait for dremio
+    a_socket = socket.socket()
+    ready = 0
+    count = 0
+    res = -2
+    while ready == 0 and count < 20:
+        print("wait dremio")
+        try:
+            a_socket.connect(("dremio-client.fybrik-blueprints.svc.cluster.local", 9047))
+        except:
+            sleep(10)
+            count += 1
+            continue
+        break
+    
+
     data_user = {
         "userName": "adminUser",
         "firstName": "user",
@@ -238,16 +240,8 @@ if __name__ == "__main__":
     if "://" in endpoint:
         endpoint = endpoint.split("://")[1]
 
-
-    print("conf parse")
-    print(transformation)
-    print(transformation_cols)
-    print(creds[0])
-    print(endpoint)
-    print(path)
-
     # Create a new source from an s3 bucket
-    source_name = "sample-iceberg6"
+    source_name = "sample-iceberg"
     data_s3 = {
         "entityType": "source",
         "name": source_name,
