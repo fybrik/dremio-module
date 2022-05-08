@@ -40,11 +40,7 @@ Run the following command to wait until the fybrikapplication be ready.
 while [[ $(kubectl get fybrikapplication my-notebook -n default -o 'jsonpath={.status.ready}') != "true" ]]; do echo "waiting for FybrikApplication" && sleep 5; done
 ```
 There should be four running pods in `fybrik-blueprints` namespace.
-Run the python code inside the `my-notebook-default-dremio-module-xxxx` pod, using kubectl exec:
-```bash
-kubectl exec -it my-notebook-default-dremio-module-xxxx -n fybrik-blueprints -- /bin/bash
-```
-Then, run python3 dremio-module.py. This code will register the asset in dremio and apply the policy to create a virtual dataset. The user can use the following credentials to connect to Dremio:
+Wait For the pod `my-notebook-default-dremio-module-xxxx` to be completed. This pod runs a python code that registers the asset in dremio and applies the policy to create a virtual dataset. The user can use the following credentials to connect to Dremio:
 
     "name": "newUser", 
     "password": "testpassword123"
