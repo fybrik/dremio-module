@@ -1,0 +1,24 @@
+apiVersion: katalog.fybrik.io/v1alpha1
+kind: Asset
+metadata:
+  name: iceberg-dataset
+spec:
+  secretRef: 
+    name: iceberg-dataset
+  details:
+    dataFormat: iceberg
+    connection:
+      name: s3
+      s3:
+        endpoint: "s3.eu-de.cloud-object-storage.appdomain.cloud"
+        bucket: "fybric-objectstorage-iceberg-demo/warehouse/db"
+        object_key: "table"
+  metadata:
+    name: "Iceberg Data Asset"
+    geography: theshire
+    tags:
+      finance: true
+    columns:
+      - name: _c1
+        tags:
+          PII: true

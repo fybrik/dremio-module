@@ -1,0 +1,32 @@
+apiVersion: app.fybrik.io/v1alpha1
+kind: FybrikModule
+metadata:
+  name: dremio-module
+  labels:
+    name: dremio-module
+    version: 0.0.1  # semantic version
+  namespace: fybrik-system
+spec:
+  type: service
+  chart:
+    name: ghcr.io/mohammad-nassar10/dremio-module-chart:0.0.0
+    values:
+      imageChart.tag: main
+  capabilities:
+    - capability: read
+      scope: workload
+      api:
+        connection:
+          name: rest
+          rest:
+            endpoint: "https://{{ .Release.Name }}.{{ .Release.Namespace }}:80/readAsset"
+      supportedInterfaces:
+        - source:
+            protocol: s3
+            dataformat: iceberg
+        - source:
+            protocol: s3
+            dataformat: csv
+      actions:
+        - name: RedactAction
+        - name: RemoveAction

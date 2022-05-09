@@ -1,0 +1,27 @@
+data:
+  - format: csv
+    name: "fybrik-notebook-sample/medals-winners"
+    path: "bucket/medals.csv"
+    connection:
+      type: s3
+      s3:
+        endpoint_url: http://winterolympicsmedals.com/medals.csv
+        vault_credentials:
+          address: http://vault.fybrik-system:8200
+          authPath: /v1/auth/kubernetes/login
+          role: module
+          secretPath: /v1/kubernetes-secrets/medals-winners?namespace=fybrik-notebook-sample
+    transformations: "W3siUmVtb3ZlQWN0aW9uIjp7ImNvbHVtbnMiOlsiYWdlIl19LCJuYW1lIjoiUmVtb3ZlQWN0aW9uIn1d"
+  - format: csv
+    name: "fybrik-notebook-sample/bank"
+    path: "bucket/bank.csv"
+    connection:
+      type: s3
+      s3:
+        endpoint_url: https://raw.githubusercontent.com/juliencohensolal/BankMarketing/master/rawData/bank-additional-full.csv
+        vault_credentials:
+          address: http://vault.fybrik-system:8200
+          authPath: /v1/auth/kubernetes/login
+          role: module
+          secretPath: /v1/kubernetes-secrets/bank?namespace=fybrik-notebook-sample
+    transformations: "W3siUmVtb3ZlQWN0aW9uIjp7ImNvbHVtbnMiOlsiYWdlIl19LCJuYW1lIjoiUmVtb3ZlQWN0aW9uIn1d"
