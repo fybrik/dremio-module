@@ -6,65 +6,9 @@ import sys
 from time import sleep
 import yaml
 import requests
-# from fybrik_python_vault import get_jwt_from_file, get_raw_secret_from_vault
-from fybrik_python_logging import init_logger, logger, DataSetID, ForUser, Error
-
-data_dict = {}
-
-#########################
-def get_jwt_from_file(file_name):
-    """
-    Getting a jwt from a file.
-    Typically, an SA token, which would be at: /var/run/secrets/kubernetes.io/serviceaccount/token
-    """
-    with open(file_name) as f:
-        return f.read()
-
-def vault_jwt_auth(jwt, vault_address, vault_path, role, datasetID):
-    """Authenticate against Vault using a JWT token (i.e., k8s sa token)"""
-    full_auth_path = vault_address + vault_path
-    logger.trace('authenticating against vault using a JWT token',
-        extra={'full_auth_path': str(full_auth_path),
-               DataSetID: datasetID})
-    json = {"jwt": jwt, "role": role}
-    response = requests.post(full_auth_path, json=json)
-    if response.status_code == 200:
-        return response.json()
-    logger.error("vault authentication failed",
-        extra={Error: str(response.status_code) + ': ' + str(response.json()),
-               DataSetID: datasetID, ForUser: True})
-    return None
-
-def get_raw_secret_from_vault(jwt, secret_path, vault_address, vault_path, role, datasetID):
-    """Get a raw secret from vault by providing a valid jwt token"""
-    vault_auth_response = vault_jwt_auth(jwt, vault_address, vault_path, role, datasetID)
-    if vault_auth_response is None:
-        logger.error("Empty vault authorization response",
-                     extra={DataSetID: datasetID, ForUser: True})
-        return None
-    if not "auth" in vault_auth_response or not "client_token" in vault_auth_response["auth"]:
-        logger.error("Malformed vault authorization response",
-                     extra={DataSetID: datasetID, ForUser: True})
-        return None
-    client_token = vault_auth_response["auth"]["client_token"]
-    secret_full_path = vault_address + secret_path
-    response = requests.get(secret_full_path, headers={"X-Vault-Token" : client_token})
-    logger.debug('Response received from vault when accessing credentials: %s', str(response.status_code),
-        extra={'credentials_path': str(secret_full_path),
-               DataSetID: datasetID, ForUser: True})
-    if response.status_code == 200:
-        response_json = response.json()
-        if 'data' in response_json:
-            return response_json['data']
-        else:
-            logger.error("Malformed secret response. Expected the 'data' field in JSON",
-                         extra={DataSetID: datasetID, ForUser: True})
-    else:
-        logger.error("Error reading credentials from vault",
-            extra={Error: str(response.status_code) + ': ' + str(response.json()),
-                   DataSetID: datasetID, ForUser: True})
-    return None
-#########################   
+from fybrik_python_vault import get_jwt_from_file, get_raw_secret_from_vault
+from fybrik_python_logging import logger, DataSetID, ForUser
+ 
 
 def get_credentials_from_vault(vault_credentials, data_set_id):
     """ Use the fybrik-python-library to get the access_key and secret_key from vault for s3 dataset """
@@ -93,7 +37,12 @@ def get_credentials_from_vault(vault_credentials, data_set_id):
 def get_details_from_conf():
     """ Parse the configuration and get the data details and policies """
     with open("/etc/conf/conf.yaml", 'r') as stream:
+    # with open("sample-conf.yaml", 'r') as stream:
         content = yaml.safe_load(stream)
+        if "dremioHost" in content.keys():
+            dremio_host = content["dremioHost"]
+        if "dremioPort" in content.keys():
+            dremio_port = content["dremioPort"]
         for key, val in content.items():
             if "data" in key:
                 for data in val:
@@ -108,7 +57,8 @@ def get_details_from_conf():
                     transformation_cols = transformations_json[0][transformation]["columns"]
                     data_dict[name] = {'format': data["format"], 'endpoint_url': endpoint_url, 'path': data["path"], 'transformation': transformation,
                      'transformation_cols': transformation_cols, 'creds': creds}
-    return data_dict[name]
+
+    return data_dict[name], dremio_host, dremio_port
 
 def api_get(server, endpoint=None, headers=None, body=None):
     """" Run GET command """
@@ -139,8 +89,10 @@ def wait_dremio(dremio_host, dremio_port):
     """ Try to connect to Dremio until success or timeout """
     a_socket = socket.socket()
     count = 0
-    while count < 100:
-        logger.info("wait dremio")
+    while count < 30:
+        logger.debug("wait dremio")
+        print("wait dremio")
+        print(dremio_host)
         try:
             a_socket.connect((dremio_host, dremio_port))
             return True
@@ -262,26 +214,21 @@ def create_new_user(dremio_server, auth_headers):
     logger.debug("Create new user response: %s", response)
 
 if __name__ == "__main__":
-    init_logger("TRACE", "123", 'dremio-module')
+    # TODO: find a way to get the admin user and password
     username = "adminUser"
     password = "adminPwd1"
     json_headers = {'content-type': 'application/json'}
-    dremio_server = 'http://dremio-client.fybrik-blueprints.svc.cluster.local:9047'
-    dremio_host = 'dremio-client.fybrik-blueprints.svc.cluster.local'
-    dremio_port = 9047
-
-    # Wait for dremio to be ready
-    is_running_dremio = wait_dremio(dremio_host, dremio_port)
-    if is_running_dremio == False:
-        logger.info("Dremio is not running")
-        sys.exit(1)
-    # Register the admin user
-    register_admin_user(dremio_server)
-    # Login to Dremio with admin user
-    auth_headers = login(dremio_server, username, password, json_headers)
+    # dremio_server = 'http://localhost:9047'
+    # TODO: find a way to get the namespace where the dremio is running (maybe also the service name)
+    # dremio_namespace = 'fybrik-notebook-sample'
+    # dremio_port = 9047
+    # dremio_server = 'http://dremio-client.' + dremio_namespace + '.svc.cluster.local:9047'
+    # dremio_host = 'dremio-client.' + dremio_namespace + '.svc.cluster.local'
+    # print(dremio_host)
 
     # Get the dataset details from configuration
-    parse_conf = get_details_from_conf()
+    parse_conf, dremio_host, dremio_port = get_details_from_conf()
+    dremio_server = "http://" + dremio_host + ":" + str(dremio_port)
     transformation = parse_conf['transformation']
     transformation_cols = parse_conf['transformation_cols']
     creds = parse_conf['creds']
@@ -289,6 +236,12 @@ if __name__ == "__main__":
     path = parse_conf['path']
     if "://" in endpoint:
         endpoint = endpoint.split("://")[1]
+    # Wait for dremio to be ready
+    wait_dremio(dremio_host, dremio_port)
+    # Register the admin user
+    register_admin_user(dremio_server)
+    # Login to Dremio with admin user
+    auth_headers = login(dremio_server, username, password, json_headers)
 
     # Create a new source from an s3 bucket
     source_name = "sample-iceberg"

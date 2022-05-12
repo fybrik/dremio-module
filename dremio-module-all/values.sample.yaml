@@ -1,0 +1,88 @@
+# Default values for hello-world-module job.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+global:
+  environment: []
+
+replicaCount: 1
+
+## Module image
+imageChart: 
+  repository: ghcr.io/mohammad-nassar10/dremio-module
+  tag: main
+  pullPolicy: Always
+  pullSecret: null
+
+imagePullSecrets: []
+
+# Action (copy/read)
+assets:
+- args:
+  # Read source
+  - connection:
+      name: s3
+      s3:
+        bucket: demo
+        endpoint: http://localstack.fybrik-notebook-sample.svc.cluster.local:4566
+        object_key: PS_20174392719_1491204439457_log.csv
+    format: csv
+    vault:
+      read:
+        address: http://vault.fybrik-system:8200
+        authPath: /v1/auth/kubernetes/login
+        role: module
+        secretPath: /v1/kubernetes-secrets/paysim-csv?namespace=fybrik-notebook-sample
+  assetID: "fybrik-notebook-sample/paysim-csv"
+  transformations:
+  - name: RedactAction
+    RedactAction:
+      columns:
+      - col1
+      - col2
+  - name: RemoveAction
+    RemoveAction:
+      columns:
+      - col1
+      - col2
+
+    
+nameOverride: ""
+fullnameOverride: ""
+
+## Job configurations
+#backoffLimit: 4
+#restartPolicy: Never
+
+serviceAccount:
+  # Specifies whether a service account should be created
+  create: true
+  # Annotations to add to the service account
+  annotations: {}
+  # The name of the service account to use.
+  # If not set and create is true, a name is generated using the fullname template
+  name: ""
+service:
+  type: ClusterIP
+  port: 80
+annotations: {}
+
+securityContext: {}
+  # capabilities:
+  #   drop:
+  #   - ALL
+  # readOnlyRootFilesystem: true
+  # runAsNonRoot: true
+  # runAsUser: 1000
+
+resources: {}
+  # We usually recommend not to specify default resources and to leave this as a conscious
+  # choice for the user. This also increases chances charts run on environments with little
+  # resources, such as Minikube. If you do want to specify resources, uncomment the following
+  # lines, adjust them as necessary, and remove the curly braces after 'resources:'.
+  # limits:
+  #   cpu: 100m
+  #   memory: 128Mi
+  # requests:
+  #   cpu: 100m
+  #   memory: 128Mi

@@ -1,5 +1,5 @@
 apiVersion: v2
-name: dremio-module-multi-chart
+name: dremio-module-chart
 description: A Helm chart for installing a module for Fybrik in Kubernetes
 # A chart can be either an 'application' or a 'library' chart.
 #
