@@ -11,6 +11,13 @@ Ensure that you have the following:
 Install Fybrik v0.6 using the [Quick Start](https://fybrik.io/v0.6/get-started/quickstart/), without the section of `Install modules`.
 
 ### Register the fybrikmodule:
+In `dremio-module.yaml` you can specify the host and port of an existing and running dremio cluster (and to set the `dremio.enabled` value to "false"). Another option is to tell fybrik to start a dremio cluster, then you should set the dremio parameters as the following:
+```
+dremio.host: "dremio-client.fybrik-blueprints.svc.cluster.local"
+dremio.port: "9047"
+dremio.enabled: "true"
+```
+Then, apply the fybrik module using the following command:
 ```bash
 kubectl apply -f dremio-module.yaml -n fybrik-system
 ```
@@ -56,6 +63,11 @@ Wait for the fybrik module (could take few minutes):
 ```bash
 while [[ ($(kubectl get fybrikapplication my-notebook -o 'jsonpath={.status.ready}') != "true") || ($(kubectl get jobs my-notebook-fybrik-notebook-sample-dremio-module -n fybrik-blueprints -o 'jsonpath={.status.conditions[0].type}') != "Complete") ]]; do echo "waiting for FybrikApplication" && sleep 5; done
 ```
+<<<<<<< HEAD
+=======
+
+Wait For the pod `my-notebook-default-dremio-module-xxxx` to be completed. This pod runs a python code that registers the asset in dremio and applies the policy to create a virtual dataset. The user can use the following credentials to connect to Dremio:
+>>>>>>> Using subchart for dremio cluster.
 
 Use port-forward to access Dremio
 ```

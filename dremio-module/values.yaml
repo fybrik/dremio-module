@@ -120,3 +120,6 @@ service:
 #  - secretname
 
 resources: {}
+
+dremio:
+  enabled: false
