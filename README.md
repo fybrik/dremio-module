@@ -4,6 +4,13 @@
 Fybrik Quick Start (v0.6), without the section of `Install modules`.
 
 ### Register the fybrikmodule:
+In `dremio-module.yaml` you can specify the host and port of an existing and running dremio cluster (and to set the `dremio.enabled` value to "false"). Another option is to tell fybrik to start a dremio cluster, then you should set the dremio parameters as the following:
+```
+dremio.host: "dremio-client.fybrik-blueprints.svc.cluster.local"
+dremio.port: "9047"
+dremio.enabled: "true"
+```
+Then, apply the fybrik module using the following command:
 ```bash
 kubectl apply -f dremio-module.yaml -n fybrik-system
 ```
@@ -39,7 +46,7 @@ Run the following command to wait until the fybrikapplication be ready.
 ```bash
 while [[ $(kubectl get fybrikapplication my-notebook -n default -o 'jsonpath={.status.ready}') != "true" ]]; do echo "waiting for FybrikApplication" && sleep 5; done
 ```
-There should be four running pods in `fybrik-blueprints` namespace.
+
 Wait For the pod `my-notebook-default-dremio-module-xxxx` to be completed. This pod runs a python code that registers the asset in dremio and applies the policy to create a virtual dataset. The user can use the following credentials to connect to Dremio:
 
     "name": "newUser", 

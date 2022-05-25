@@ -14,5 +14,3 @@ RUN python3 -m pip install --no-cache-dir -r /tmp/requirements.txt
 
 ENTRYPOINT ["python3"]
 CMD ["dremio-module-clean.py"]
-# CMD ["tail", "-f", "/dev/null"]
-

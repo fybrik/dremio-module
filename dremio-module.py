@@ -40,7 +40,6 @@ def get_credentials_from_vault(vault_credentials, data_set_id):
 def get_details_from_conf():
     """ Parse the configuration and get the data details and policies """
     with open("/etc/conf/conf.yaml", 'r') as stream:
-    # with open("sample-conf.yaml", 'r') as stream:
         content = yaml.safe_load(stream)
         if "dremioHost" in content.keys():
             dremio_host = content["dremioHost"]
@@ -109,8 +108,6 @@ def wait_dremio(dremio_host, dremio_port):
     count = 0
     while count < 30:
         logger.debug("wait dremio")
-        print("wait dremio")
-        print(dremio_host)
         try:
             a_socket.connect((dremio_host, dremio_port))
         except:
@@ -235,13 +232,6 @@ if __name__ == "__main__":
     username = "adminUser"
     password = "adminPwd1"
     json_headers = {'content-type': 'application/json'}
-    # dremio_server = 'http://localhost:9047'
-    # TODO: find a way to get the namespace where the dremio is running (maybe also the service name)
-    # dremio_namespace = 'fybrik-notebook-sample'
-    # dremio_port = 9047
-    # dremio_server = 'http://dremio-client.' + dremio_namespace + '.svc.cluster.local:9047'
-    # dremio_host = 'dremio-client.' + dremio_namespace + '.svc.cluster.local'
-    # print(dremio_host)
 
     # Get the dataset details from configuration
     parse_conf, dremio_host, dremio_port = get_details_from_conf()
