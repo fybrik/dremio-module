@@ -1,10 +1,22 @@
 # DremioModule
 
-### Install fybrik
+### Install Fybrik
 Fybrik Quick Start (v0.6), without the section of `Install modules`.
 
+### Install Dremio (Optional)
+You can install a Dremio cluster using the following command:
+```bash
+helm install <chart-name> dremio-chart/
+```
+
 ### Register the fybrikmodule:
-In `dremio-module.yaml` you can specify the host and port of an existing and running dremio cluster (and to set the `dremio.enabled` value to "false"). Another option is to tell fybrik to start a dremio cluster, then you should set the dremio parameters as the following:
+In `dremio-module.yaml` you can specify the host and port of an existing and running dremio cluster. If you installed a dremio cluster using the previous step you can set the dremio parameters in `dremio-module.yaml` as the following:
+```
+dremio.host: "dremio-client.<namespace of the dremio chart>.svc.cluster.local"
+dremio.port: "9047"
+```
+
+Another option is to tell fybrik to start a dremio cluster, then you should set the dremio parameters in `dremio-module.yaml` as the following:
 ```
 dremio.host: "dremio-client.fybrik-blueprints.svc.cluster.local"
 dremio.port: "9047"
@@ -51,5 +63,3 @@ Wait For the pod `my-notebook-default-dremio-module-xxxx` to be completed. This 
 
     "name": "newUser", 
     "password": "testpassword123"
-
-

@@ -12,9 +12,8 @@ spec:
     name: ghcr.io/mohammad-nassar10/dremio-module-multi-chart:0.0.0
     values:
       imageChart.tag: main
-      dremio.host: "dremio-client.fybrik-notebook-sample.svc.cluster.local"
+      dremio.host: "dremio-client.default.svc.cluster.local"
       dremio.port: "9047"
-      dremio.enabled: "false"
   capabilities:
     - capability: read
       scope: workload

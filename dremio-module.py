@@ -6,7 +6,7 @@ from time import sleep
 import yaml
 import requests
 from fybrik_python_vault import get_jwt_from_file, get_raw_secret_from_vault
-from fybrik_python_logging import logger, DataSetID, ForUser
+from fybrik_python_logging import init_logger, logger, DataSetID, ForUser
  
 
 data_dict = {}
@@ -232,7 +232,8 @@ if __name__ == "__main__":
     username = "adminUser"
     password = "adminPwd1"
     json_headers = {'content-type': 'application/json'}
-
+    # Set log level
+    init_logger("TRACE", "123", 'dremio-module')
     # Get the dataset details from configuration
     parse_conf, dremio_host, dremio_port = get_details_from_conf()
     dremio_server = "http://" + dremio_host + ":" + str(dremio_port)
@@ -275,7 +276,7 @@ if __name__ == "__main__":
     response = api_post(dremio_server, "catalog", payloadSpace, auth_headers)
     logger.debug("Create space: %s", response)
     
-    # Create a virtual dataset that represents the source dataset after applying the policies    
+    # Create a virtual dataset that represents the source dataset after applying the policies
     newVDSName = "sample-iceberg-vds"
     create_VDS(dremio_server, auth_headers, path_list, sql_vds, newVDSName)
 
