@@ -8,44 +8,11 @@ imageChart:
   pullPolicy: Always
   pullSecret: null
 
-<<<<<<< HEAD
-# Action (copy/read)
-assets:
-- args:
-  # Read source
-  - connection:
-      name: s3
-      s3:
-        bucket: demo
-        endpoint: http://localstack.fybrik-notebook-sample.svc.cluster.local:4566
-        object_key: PS_20174392719_1491204439457_log.csv
-    format: csv
-    vault:
-      read:
-        address: http://vault.fybrik-system:8200
-        authPath: /v1/auth/kubernetes/login
-        role: module
-        secretPath: /v1/kubernetes-secrets/paysim-csv?namespace=fybrik-notebook-sample
-  assetID: "fybrik-notebook-sample/paysim-csv"
-  transformations:
-  - name: RedactAction
-    RedactAction:
-      columns:
-      - col1
-      - col2
-  - name: RemoveAction
-    RemoveAction:
-      columns:
-      - col1
-      - col2
-
-=======
 imageChartClean: 
   repository: ghcr.io/mohammad-nassar10/dremio-module-clean
   tag: main
   pullPolicy: Always
   pullSecret: null
->>>>>>> Using external dremio cluster.
 # Annotations, labels, node selectors, and tolerations
 #
 # annotations: Annotations are applied to the StatefulSets that are deployed.
@@ -120,6 +87,3 @@ service:
 #  - secretname
 
 resources: {}
-
-dremio:
-  enabled: false

@@ -10,14 +10,9 @@
 image: 
     repository: dremio/dremio-oss
     tag: latest
-    pullPolicy: Always
+    pullPolicy: IfNotExists
     pullSecret: null
 
-imageChart: 
-  repository: ghcr.io/mohammad-nassar10/dremio-module
-  tag: main
-  pullPolicy: Always
-  pullSecret: null
 # Annotations, labels, node selectors, and tolerations
 #
 # annotations: Annotations are applied to the StatefulSets that are deployed.

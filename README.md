@@ -63,11 +63,8 @@ Wait for the fybrik module (could take few minutes):
 ```bash
 while [[ ($(kubectl get fybrikapplication my-notebook -o 'jsonpath={.status.ready}') != "true") || ($(kubectl get jobs my-notebook-fybrik-notebook-sample-dremio-module -n fybrik-blueprints -o 'jsonpath={.status.conditions[0].type}') != "Complete") ]]; do echo "waiting for FybrikApplication" && sleep 5; done
 ```
-<<<<<<< HEAD
-=======
 
 Wait For the pod `my-notebook-default-dremio-module-xxxx` to be completed. This pod runs a python code that registers the asset in dremio and applies the policy to create a virtual dataset. The user can use the following credentials to connect to Dremio:
->>>>>>> Using subchart for dremio cluster.
 
 Use port-forward to access Dremio
 ```
