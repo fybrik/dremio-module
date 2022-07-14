@@ -16,7 +16,7 @@ HELM_VALUES ?= dremio-module/values.yaml
 
 TEMP := /tmp
 CHART_LOCAL_PATH ?= dremio-module
-CHART_NAME ?= dremio-module-chart
+CHART_NAME ?= dremio-module-multi-chart
 HELM_RELEASE ?= rel1-${DOCKER_NAME}
 HELM_TAG ?= 0.0.0
 

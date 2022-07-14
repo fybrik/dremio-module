@@ -1,6 +1,4 @@
-dremioHost: {{ .Values.dremio.host | default "host missing" }}
-dremioPort: {{ .Values.dremio.port | default "port missing" }}
-{{ if .Values.read -}}
+{{- if .Values.read -}}
 data:
 {{- range .Values.read }}
   - format: {{ .source.format }}

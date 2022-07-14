@@ -1,0 +1,17 @@
+[[source]]
+url = "https://pypi.org/simple"
+verify_ssl = true
+name = "pypi"
+
+[packages]
+certifi = "*"
+pandas = "*"
+pyarrow = "==3.0.0"
+fybrik_python_logging = "==0.1.0"
+fybrik_python_vault = "==0.1.0"
+pyyaml = "*"
+
+[dev-packages]
+
+[requires]
+python_version = "3.8"

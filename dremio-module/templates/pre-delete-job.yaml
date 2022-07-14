@@ -1,0 +1,25 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: pre-delete-job
+  annotations:
+       "helm.sh/hook": "pre-delete"
+spec:
+  template:
+    spec:
+      containers:
+        - name: {{ .Chart.Name }}
+          image: "{{ .Values.imageChartClean.repository }}:{{ .Values.imageChartClean.tag }}"
+          {{- if .Values.imageChartClean.pullPolicy }}
+          imagePullPolicy: {{ .Values.imageChartClean.pullPolicy }}
+          {{- end }}
+          volumeMounts:
+            - readOnly: true
+              mountPath: /etc/conf
+              name: config
+      volumes:
+        - name: config
+          configMap:
+            name: {{ include "dremio-module.fullname" . }}
+      restartPolicy: Never
+      terminationGracePeriodSeconds: 0
