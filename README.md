@@ -33,13 +33,14 @@ kubectl create namespace fybrik-notebook-sample
 kubectl config set-context --current --namespace=fybrik-notebook-sample
 ```
 
-### Register asset and secret
+### Register asset and secrets
 ```bash
 kubectl apply -f sample_assets/asset-iceberg.yaml -n fybrik-notebook-sample
 ```
 Replace the values for access_key and secret_key in `sample_asset/secret-iceberg.yaml` file with the values from the object storage service that you used and run:
 ```bash
 kubectl apply -f sample_assets/secret-iceberg.yaml -n fybrik-notebook-sample
+kubectl apply -f sample_assets/secret-dremio.yaml -n fybrik-notebook-sample
 ```
 
 ### Define data access policy
