@@ -28,12 +28,16 @@ kubectl create namespace fybrik-notebook-sample
 kubectl config set-context --current --namespace=fybrik-notebook-sample
 ```
 
+<<<<<<< HEAD
 ### Create iceberg asset
 To be done.
 
 ### Register iceberg asset
 Replace the values of `endpoint`, `bucket`, and `object_key` in `sample_asset/asset-iceberg.yaml` file according to your created asset. Then, add the asset to the internal catalog using the following command:
 
+=======
+### Register asset and secrets
+>>>>>>> Add secret for dremio user.
 ```bash
 kubectl apply -f sample_assets/asset-iceberg.yaml -n fybrik-notebook-sample
 ```
@@ -43,6 +47,7 @@ The asset has been marked as a `finance` data and the column `_c1` has been mark
 Replace the values for `access_key` and `secret_key` in `sample_asset/secret-iceberg.yaml` file with the values from the object storage service that you used and run:
 ```bash
 kubectl apply -f sample_assets/secret-iceberg.yaml -n fybrik-notebook-sample
+kubectl apply -f sample_assets/secret-dremio.yaml -n fybrik-notebook-sample
 ```
 
 ### Define data access policy
