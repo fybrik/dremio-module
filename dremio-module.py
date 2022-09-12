@@ -10,12 +10,19 @@ from fybrik_python_vault import get_jwt_from_file, get_raw_secret_from_vault
 from fybrik_python_logging import init_logger, logger, DataSetID, ForUser
  
 
+<<<<<<< HEAD
 def get_credentials_from_vault(vault_credentials, data_set_id):
+=======
+data_dict = {}
+
+
+def get_credentials_from_vault(vault_credentials, secret_path, data_set_id):
+>>>>>>> Update module's code.
     """ Use the fybrik-python-library to get the access_key and secret_key from vault for s3 dataset """
     jwt_file_path = vault_credentials.get('jwt_file_path', '/var/run/secrets/kubernetes.io/serviceaccount/token')
     jwt = get_jwt_from_file(jwt_file_path)
     vault_address = vault_credentials.get('address', 'https://localhost:8200')
-    secret_path = vault_credentials.get('secretPath', '/v1/secret/data/cred')
+    # secret_path = vault_credentials.get('secretPath', '/v1/secret/data/cred')
     vault_auth = vault_credentials.get('authPath', '/v1/auth/kubernetes/login')
     role = vault_credentials.get('role', 'demo')
     credentials = get_raw_secret_from_vault(jwt, secret_path, vault_address, vault_auth, role, data_set_id)
@@ -49,13 +56,15 @@ def get_details_from_conf():
                     name = dataset_id.split("/")[1]
                     endpoint_url = data["connection"]["s3"]["endpoint_url"]
                     vault_credentials = data["connection"]["s3"]["vault_credentials"]
-                    creds = get_credentials_from_vault(vault_credentials, dataset_id)
+                    asset_creds = get_credentials_from_vault(vault_credentials, vault_credentials.get('secretPath', '/v1/secret/data/cred'), dataset_id)
+                    dremio_creds = get_credentials_from_vault(vault_credentials, "/v1/kubernetes-secrets/dremio-cluster?namespace=fybrik-notebook-sample", dataset_id)
+                    logger.debug("creds: " + asset_creds[0] + "   " + asset_creds[1] + "   " + dremio_creds[0] + "   " + dremio_creds[1])
                     transformations = base64.b64decode(data["transformations"])
                     transformations_json = json.loads(transformations.decode('utf-8'))
                     transformation = transformations_json[0]['name']
                     transformation_cols = transformations_json[0][transformation]["columns"]
                     data_dict[name] = {'format': data["format"], 'endpoint_url': endpoint_url, 'path': data["path"], 'transformation': transformation,
-                     'transformation_cols': transformation_cols, 'creds': creds}
+                     'transformation_cols': transformation_cols, 'asset_creds': asset_creds, 'dremio_creds': dremio_creds}
 
     return data_dict[name], dremio_host, dremio_port
 
@@ -212,8 +221,8 @@ def create_new_user(dremio_server, auth_headers):
 
 if __name__ == "__main__":
     # TODO: find a way to get the admin user and password
-    username = "adminUser"
-    password = "adminPwd1"
+    # username = "adminUser"
+    # password = "adminPwd1"
     json_headers = {'content-type': 'application/json'}
     # Set log level
     init_logger("TRACE", "123", 'dremio-module')
@@ -222,7 +231,12 @@ if __name__ == "__main__":
     dremio_server = "http://" + dremio_host + ":" + str(dremio_port)
     transformation = parse_conf['transformation']
     transformation_cols = parse_conf['transformation_cols']
-    creds = parse_conf['creds']
+    asset_creds = parse_conf['asset_creds']
+    dremio_creds = parse_conf['dremio_creds']
+    username = dremio_creds[0]
+    password = dremio_creds[1]
+    logger.debug("dremio username: " + username + " dremio password: " + password)
+
     endpoint = parse_conf['endpoint_url']
     path = parse_conf['path']
     if "://" in endpoint:
@@ -236,8 +250,12 @@ if __name__ == "__main__":
 
     # Create a new source from an s3 bucket
     source_name = "sample-iceberg"
+<<<<<<< HEAD
     logger.info("Creating S3 resource")
     create_s3_source(dremio_server, auth_headers, creds, endpoint, source_name)
+=======
+    create_s3_source(dremio_server, auth_headers, asset_creds, endpoint, source_name)
+>>>>>>> Update module's code.
 
     # Get data folder path
     response = api_get(dremio_server, endpoint="catalog/by-path/{name}/{path}".format(name=source_name, path=path), headers=auth_headers)
