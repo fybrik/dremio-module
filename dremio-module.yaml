@@ -9,7 +9,7 @@ metadata:
 spec:
   type: service
   chart:
-    name: ghcr.io/tomersolomon1/dremio-module-chart:0.0.0
+    name: ghcr.io/fybrik/dremio-module-chart:0.0.0
     values:
       imageChart.tag: main
   capabilities:

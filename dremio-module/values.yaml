@@ -14,7 +14,7 @@ image:
     pullSecret: null
 
 imageChart: 
-  repository: ghcr.io/tomersolomon1/dremio-module
+  repository: ghcr.io/fybrik/dremio-module
   tag: main
   pullPolicy: Always
   pullSecret: null

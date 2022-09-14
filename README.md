@@ -1,7 +1,7 @@
 # DremioModule
 
 ### Install fybrik
-Fybrik Quick Start (v0.6), without the section of `Install modules`.
+Install Fybrik v0.6 using the [Quick Start](https://fybrik.io/v0.6/get-started/quickstart/), without the section of `Install modules`.
 
 ### Register the fybrikmodule:
 ```bash
@@ -24,7 +24,7 @@ kubectl apply -f sample_assets/secret-iceberg.yaml -n fybrik-notebook-sample
 ```
 
 ### Define data access policy
-An example policy of remove columns.
+Register a policy. The example policy removes columns tagged as PII in datasets tagged with `finance = true`.
 ```bash
 kubectl -n fybrik-system create configmap sample-policy --from-file=sample_assets/sample-policy.rego
 kubectl -n fybrik-system label configmap sample-policy openpolicyagent.org/policy=rego
@@ -35,7 +35,8 @@ while [[ $(kubectl get cm sample-policy -n fybrik-system -o 'jsonpath={.metadata
 ```bash
 kubectl apply -f fybrikapplication.yaml -n default
 ```
-Wait for the fybrik module:
+
+Wait for the fybrik module (could take few minutes):
 ```bash
 while [[ ($(kubectl get fybrikapplication my-notebook -n default -o 'jsonpath={.status.ready}') != "true") || ($(kubectl get jobs my-notebook-default-dremio-module -n fybrik-blueprints -o 'jsonpath={.status.conditions[0].type}') != "Complete") ]]; do echo "waiting for FybrikApplication" && sleep 5; done
 ```

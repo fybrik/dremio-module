@@ -1,9 +1,9 @@
 include Makefile.env
 
-export DOCKER_USERNAME ?= tomersolomon1
+export DOCKER_USERNAME ?= fybrik
 export DOCKER_PASSWORD ?= 
 export DOCKER_HOSTNAME ?= ghcr.io
-export DOCKER_NAMESPACE ?= tomersolomon1
+export DOCKER_NAMESPACE ?= fybrik
 export DOCKER_TAGNAME ?= main
 
 DOCKER_FILE ?= Dockerfile
