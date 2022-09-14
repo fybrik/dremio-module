@@ -6,7 +6,9 @@ from time import sleep
 import yaml
 import requests
 # from fybrik_python_vault import get_jwt_from_file, get_raw_secret_from_vault
-from fybrik_python_logging import logger, DataSetID, ForUser, Error
+from fybrik_python_logging import init_logger, logger, DataSetID, ForUser, Error
+
+data_dict = {}
 
 #########################
 def get_jwt_from_file(file_name):
@@ -63,9 +65,6 @@ def get_raw_secret_from_vault(jwt, secret_path, vault_address, vault_path, role,
     return None
 #########################   
 
-data_dict = {}
-
-
 def get_credentials_from_vault(vault_credentials, data_set_id):
     """ Use the fybrik-python-library to get the access_key and secret_key from vault for s3 dataset """
     jwt_file_path = vault_credentials.get('jwt_file_path', '/var/run/secrets/kubernetes.io/serviceaccount/token')
@@ -90,7 +89,6 @@ def get_credentials_from_vault(vault_credentials, data_set_id):
                  extra={DataSetID: data_set_id, ForUser: True})
     raise ValueError("Vault credentials are missing")
 
-
 def get_details_from_conf():
     """ Parse the configuration and get the data details and policies """
     with open("/etc/conf/conf.yaml", 'r') as stream:
@@ -109,14 +107,11 @@ def get_details_from_conf():
                     transformation_cols = transformations_json[0][transformation]["columns"]
                     data_dict[name] = {'format': data["format"], 'endpoint_url': endpoint_url, 'path': data["path"], 'transformation': transformation,
                      'transformation_cols': transformation_cols, 'creds': creds}
-
     return data_dict[name]
-
 
 def api_get(server, endpoint=None, headers=None, body=None):
     """" Run GET command """
     return json.loads(requests.get(url='{server}/api/v3/{endpoint}'.format(server=server, endpoint=endpoint), headers=headers, data=json.dumps(body)).text)
-
 
 def api_post(server, endpoint=None, body=None, headers=None):
     """" Run POST command """
@@ -128,39 +123,27 @@ def api_post(server, endpoint=None, body=None, headers=None):
     else:
         return None
 
-
-def api_put(server, endpoint=None, body=None, headers=None):
-    """" Run PUT command """
-    return requests.put('{server}/api/v3/{endpoint}'.format(server=server, endpoint=endpoint), headers=headers, data=json.dumps(body)).text
-
-
-def api_delete(server, endpoint=None, headers=None):
-    """" Run DELETE command """
-    return requests.delete('{server}/api/v3/{endpoint}'.format(server=server, endpoint=endpoint), headers=headers)
-
-
 def login(server, username, password, headers=None):
     """" Login to Dremio using the given username and password """
     loginData = {'userName': username, 'password': password}
     response = requests.post('{server}/apiv2/login'.format(server=server), headers=headers, data=json.dumps(loginData))
-    logger.debug("Login response: %s", response)
+    logger.info("Login response: %s", response)
     data = json.loads(response.text)
 
     # retrieve the login token
     token = data['token']
     return {'Content-Type': 'application/json', 'Authorization': '_dremio{authToken}'.format(authToken=token)}
 
-
-
 def wait_dremio(dremio_host, dremio_port):
     """ Try to connect to Dremio until success or timeout """
     a_socket = socket.socket()
     count = 0
     while count < 30:
-        logger.debug("wait dremio")
+        logger.info("wait dremio")
         try:
             a_socket.connect((dremio_host, dremio_port))
         except:
+            logger.info("sleeping, waiting dremio")
             sleep(10)
             count += 1
             continue
@@ -177,7 +160,7 @@ def register_admin_user(dremio_server):
     }
     headers = {'Content-Type': 'application/json', 'Authorization': '_dremionull'}
     response = requests.request("PUT", dremio_server + '/apiv2/bootstrap/firstuser', data=json.dumps(data_user), headers=headers)
-    logger.debug("register user response: %s", response.text)
+    logger.info("register user response: %s", response.text)
 
 def create_s3_source(dremio_server, auth_headers, creds, endpoint, source_name):
     data_s3 = {
@@ -203,7 +186,6 @@ def create_s3_source(dremio_server, auth_headers, creds, endpoint, source_name):
             ],
         },
     }
-
     response = api_post(dremio_server, "catalog", data_s3, auth_headers)
     logger.debug("new source response: %s", response)
 
@@ -233,7 +215,7 @@ def get_table_columns(dremio_server, auth_headers, sql_path):
     
     response = api_get(dremio_server, "job/"+job_id, auth_headers, dataSQL)
     while(response.get("jobState") != "COMPLETED"):
-        logger.debug("wait for job")
+        logger.info("wait for job")
         response = api_get(dremio_server, "job/"+job_id, auth_headers, dataSQL)
         sleep(10)
     response = api_get(dremio_server, "job/"+job_id+"/results", auth_headers, dataSQL)
@@ -266,7 +248,7 @@ def create_VDS(dremio_server, auth_headers, path_list, sql_vds, newVDSName):
 	    "sqlContext": path_list
     }
     response = api_post(dremio_server, "catalog", dataVDS, auth_headers)
-    logger.debug("Create VDS response: %s", response)
+    logger.info("Create VDS response: %s", response)
 
 def create_new_user(dremio_server, auth_headers):
     dataNewUser = {
@@ -278,11 +260,10 @@ def create_new_user(dremio_server, auth_headers):
     logger.debug("Create new user response: %s", response)
 
 if __name__ == "__main__":
-
+    init_logger("TRACE", "123", 'dremio-module')
     username = "adminUser"
     password = "adminPwd1"
     json_headers = {'content-type': 'application/json'}
-    # dremio_server = 'http://localhost:9047'
     dremio_server = 'http://dremio-client.fybrik-blueprints.svc.cluster.local:9047'
     dremio_host = 'dremio-client.fybrik-blueprints.svc.cluster.local'
     dremio_port = 9047
@@ -306,11 +287,12 @@ if __name__ == "__main__":
 
     # Create a new source from an s3 bucket
     source_name = "sample-iceberg"
+    logger.info("Creating S3 resource")
     create_s3_source(dremio_server, auth_headers, creds, endpoint, source_name)
 
     # Get data folder path
     response = api_get(dremio_server, endpoint="catalog/by-path/{name}/{path}".format(name=source_name, path=path), headers=auth_headers)
-    logger.debug("Get path of the data folder: %s", response)
+    logger.info("Get path of the data folder: %s", response)
 
     # Promote a folder to dataset
     path_list = promote_folder(dremio_server, auth_headers, path, source_name)
@@ -327,11 +309,13 @@ if __name__ == "__main__":
         "name": "Space-api"
     }
     response = api_post(dremio_server, "catalog", payloadSpace, auth_headers)
-    logger.debug("Create space: %s", response)
+    logger.info("Created space: %s", response)
     
     # Create a virtual dataset that represents the source dataset after applying the policies    
     newVDSName = "sample-iceberg-vds"
+    logger.info("Creating VDS")
     create_VDS(dremio_server, auth_headers, path_list, sql_vds, newVDSName)
 
     # Add a new user
     create_new_user(dremio_server, auth_headers)
+    logger.info("Finished!")

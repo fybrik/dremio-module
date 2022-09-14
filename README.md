@@ -31,17 +31,27 @@ kubectl -n fybrik-system label configmap sample-policy openpolicyagent.org/polic
 while [[ $(kubectl get cm sample-policy -n fybrik-system -o 'jsonpath={.metadata.annotations.openpolicyagent\.org/policy-status}') != '{"status":"ok"}' ]]; do echo "waiting for policy to be applied" && sleep 5; done
 ```
 
-### Deploy Fybrik application which triggers the module
+### Deploy Fybrik application
 ```bash
 kubectl apply -f fybrikapplication.yaml -n default
 ```
-Run the following command to wait until the fybrikapplication be ready.
+Wait for the fybrik module:
 ```bash
-while [[ $(kubectl get fybrikapplication my-notebook -n default -o 'jsonpath={.status.ready}') != "true" ]]; do echo "waiting for FybrikApplication" && sleep 5; done
+while [[ ($(kubectl get fybrikapplication my-notebook -n default -o 'jsonpath={.status.ready}') != "true") || ($(kubectl get jobs my-notebook-default-dremio-module -n fybrik-blueprints -o 'jsonpath={.status.conditions[0].type}') != "Complete") ]]; do echo "waiting for FybrikApplication" && sleep 5; done
 ```
-There should be four running pods in `fybrik-blueprints` namespace.
-Wait For the pod `my-notebook-default-dremio-module-xxxx` to be completed. This pod runs a python code that registers the asset in dremio and applies the policy to create a virtual dataset. The user can use the following credentials to connect to Dremio:
 
+Use port-forward to access Dremio
+```
+kubectl port-forward svc/dremio-client -n fybrik-blueprints 9047:9047 &
+```
+
+Send a SQL query to the module:
+```
+python query_sample.py --query '{"sql": "<query>"}'
+```
+For the `FROM` clause use `FROM \"Space-api\".\"sample-iceberg-vds\"`.
+
+You can also access Dremio via the browser on `http://localhost:9047/`, use the following credentials:
     "name": "newUser", 
     "password": "testpassword123"
 
