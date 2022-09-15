@@ -2,6 +2,7 @@ import argparse
 import base64
 import json
 import socket
+import sys
 from time import sleep
 import yaml
 import requests
@@ -138,16 +139,17 @@ def wait_dremio(dremio_host, dremio_port):
     """ Try to connect to Dremio until success or timeout """
     a_socket = socket.socket()
     count = 0
-    while count < 30:
+    while count < 100:
         logger.info("wait dremio")
         try:
             a_socket.connect((dremio_host, dremio_port))
+            return True
         except:
             logger.info("sleeping, waiting dremio")
-            sleep(10)
+            sleep(5)
             count += 1
             continue
-        break
+    return False
 
 def register_admin_user(dremio_server):
     data_user = {
@@ -269,7 +271,10 @@ if __name__ == "__main__":
     dremio_port = 9047
 
     # Wait for dremio to be ready
-    wait_dremio(dremio_host, dremio_port)
+    is_running_dremio = wait_dremio(dremio_host, dremio_port)
+    if is_running_dremio == False:
+        logger.info("Dremio is not running")
+        sys.exit(1)
     # Register the admin user
     register_admin_user(dremio_server)
     # Login to Dremio with admin user

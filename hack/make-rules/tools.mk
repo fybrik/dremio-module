@@ -8,15 +8,7 @@ $(TOOLBIN)/helm:
 	cd $(TOOLS_DIR); ./install_helm.sh
 	$(call post-install-check)
 
-INSTALL_TOOLS += $(TOOLBIN)/kind
-$(TOOLBIN)/kind:
-	GOBIN=$(ABSTOOLBIN) go install sigs.k8s.io/kind@v0.11.1
-	$(call post-install-check)
 
-INSTALL_TOOLS += $(TOOLBIN)/kubebuilder
-$(TOOLBIN)/kubebuilder $(TOOLBIN)/etcd $(TOOLBIN)/kube-apiserver $(TOOLBIN)/kubectl:
-	cd $(TOOLS_DIR); ./install_kubebuilder.sh
-	$(call post-install-check)
 
 .PHONY: install-tools
 install-tools: $(INSTALL_TOOLS)
