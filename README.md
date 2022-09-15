@@ -1,5 +1,12 @@
 # DremioModule
 
+### Before you begin
+Ensure that you have the following:
+
+- Helm 3.3 or greater must be installed and configured on your machine.
+- Kubectl 1.18 or newer must be installed on your machine.
+- Access to a Kubernetes cluster such as Kind as a cluster administrator.
+
 ### Install fybrik
 Install Fybrik v0.6 using the [Quick Start](https://fybrik.io/v0.6/get-started/quickstart/), without the section of `Install modules`.
 
