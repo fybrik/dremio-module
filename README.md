@@ -39,7 +39,7 @@ kubectl apply -f sample_assets/secret-iceberg.yaml -n fybrik-notebook-sample
 ```
 
 ### Define data access policy
-Register a policy. The example policy removes columns tagged as PII from datasets marked as `finance`.
+Register a policy. The example policy removes columns tagged as `PII` from datasets marked as `finance`.
 ```bash
 kubectl -n fybrik-system create configmap sample-policy --from-file=sample_assets/sample-policy.rego
 kubectl -n fybrik-system label configmap sample-policy openpolicyagent.org/policy=rego
@@ -54,7 +54,7 @@ Deployment of this `fybrikapplication` installs and runs a dremio server. We pla
 
 Wait for the fybrik module (could take few minutes):
 ```bash
-while [[ ($(kubectl get fybrikapplication my-notebook -o 'jsonpath={.status.ready}') != "true") || ($(kubectl get jobs my-notebook-default-dremio-module -n fybrik-blueprints -o 'jsonpath={.status.conditions[0].type}') != "Complete") ]]; do echo "waiting for FybrikApplication" && sleep 5; done
+while [[ ($(kubectl get fybrikapplication my-notebook -o 'jsonpath={.status.ready}') != "true") || ($(kubectl get jobs my-notebook-fybrik-system namespace-dremio-module -n fybrik-blueprints -o 'jsonpath={.status.conditions[0].type}') != "Complete") ]]; do echo "waiting for FybrikApplication" && sleep 5; done
 ```
 
 Use port-forward to access Dremio
@@ -69,12 +69,12 @@ You can enter into the `Space-api` space then select the `sample-iceberg-vds` vi
 
 
 ### Cleanup
-1. Stop kubectl port-forward processes (e.g., using pkill kubectl)
+1. Stop kubectl port-forward processes (e.g., using `pkill kubectl`)
 1. Delete the `fybrik-notebook-sample` namespace:
     ```bash
     kubectl delete namespace fybrik-notebook-sample
     ```
-1. Delete the policy created in the fybrik-system namespace:
+1. Delete the policy created in the `fybrik-system` namespace:
     ```bash
     NS="fybrik-system"; kubectl -n $NS get configmap | awk '/sample/{print $1}' | xargs  kubectl delete -n $NS configmap
     ```
