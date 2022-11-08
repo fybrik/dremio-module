@@ -1,9 +1,5 @@
 ###### Requirements without version specifiers ######
-certifi
-pandas
 requests
 fybrik_python_logging
 fybrik_python_vault
 
-###### Requirements with version specifiers ######
-pyarrow==3.0.0

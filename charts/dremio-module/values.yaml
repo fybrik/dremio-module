@@ -3,47 +3,24 @@
 # Declare variables to be passed into your templates.
 
 imageChart: 
-  repository: ghcr.io/fybrik/dremio-module
+  repository: ghcr.io/tomersolomon1/dremio-module-register
   tag: main
   pullPolicy: Always
   pullSecret: null
 
 imageChartClean: 
-  repository: ghcr.io/mohammad-nassar10/dremio-module-clean
+  repository: ghcr.io/tomersolomon1/dremio-module-clean
   tag: main
   pullPolicy: Always
   pullSecret: null
-# Annotations, labels, node selectors, and tolerations
-#
-# annotations: Annotations are applied to the StatefulSets that are deployed.
-# podAnnotations: Pod annotations are applied to the pods that are deployed.
-# labels: Labels operate much like annotations.
-# podLabels: Labels that are applied to the pods that are deployed.
-# nodeSelector: Target pods to nodes based on labels set on the nodes. For more
-#   information, see https://kubernetes.io/docs/concepts/configuration/assign-pod-node/#nodeselector
-# tolerations: Tolerations allow the negation of taints that have been applied to some set of nodes
-#   in the Kubernetes cluster so that pods can be scheduled on those tainted nodes.
-annotations: {}
-podAnnotations: {}
-labels: {}
-podLabels: {}
-nodeSelector: {}
-tolerations: []
-restartPolicy: Never
 
+restartPolicy: Never
 imagePullSecrets: []
 
-dremio:
+dremioCluster:
   host: ""
   port: ""
-
-# Extra Volumes
-# Array to add extra volumes to all Dremio resources.
-extraVolumes: []
-
-# Extra Volume Mounts
-# Array to add extra volume mounts to all Dremio resources, normally used in conjunction wtih extraVolumes.
-extraVolumeMounts: []
+  enabled: false
 
 
 serviceChart:

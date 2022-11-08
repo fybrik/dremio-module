@@ -1,0 +1,17 @@
+apiVersion: app.fybrik.io/v1beta1
+kind: FybrikApplication
+metadata:
+  name: fybrik-iceberg-sample
+spec:
+  selector:
+   workloadSelector:
+     matchLabels: 
+       app: analytics
+  appInfo:
+    intent: Fraud Detection
+    role: Security
+  data:
+    - dataSetID: "fybrik-sample/iceberg-dataset"
+      requirements:
+        interface:
+          protocol: rest
