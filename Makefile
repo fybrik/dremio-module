@@ -2,10 +2,10 @@ include Makefile.env
 include hack/make-rules/tools.mk
 include hack/make-rules/helm.mk
 
-export DOCKER_USERNAME ?= tomersolomon1
+export DOCKER_USERNAME ?= fybrik
 export DOCKER_PASSWORD ?= 
 export DOCKER_HOSTNAME ?= ghcr.io
-export DOCKER_NAMESPACE ?= tomersolomon1
+export DOCKER_NAMESPACE ?= fybrik
 export DOCKER_TAGNAME ?= main
 
 DOCKER_FILE_REGISTER ?= Dockerfile

@@ -3,13 +3,13 @@
 # Declare variables to be passed into your templates.
 
 imageChart: 
-  repository: ghcr.io/tomersolomon1/dremio-module-register
+  repository: ghcr.io/fybrik/dremio-module-register
   tag: main
   pullPolicy: Always
   pullSecret: null
 
 imageChartClean: 
-  repository: ghcr.io/tomersolomon1/dremio-module-clean
+  repository: ghcr.io/fyrbik/dremio-module-clean
   tag: main
   pullPolicy: Always
   pullSecret: null

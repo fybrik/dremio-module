@@ -20,7 +20,7 @@ CHART_NAME ?= dremio-module
 HELM_RELEASE ?= rel1-${DOCKER_NAME}
 HELM_TAG ?= 0.0.0
 export DOCKER_HOSTNAME ?= ghcr.io
-export DOCKER_NAMESPACE ?= tomersolomon1
+export DOCKER_NAMESPACE ?= fybrik
 CHART_REGISTRY_PATH := oci://${DOCKER_HOSTNAME}/${DOCKER_NAMESPACE}
 
 export HELM_EXPERIMENTAL_OCI=1
