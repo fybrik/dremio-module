@@ -1,6 +1,6 @@
 # Dremio Module
 
-This module configures a Dremio cluster for data access in Fybrik. The module can either deploy a new Dremio cluster or use an existing one.
+This module configures a Dremio cluster for data access in Fybrik. The module can either deploy a new Dremio cluster or use an existing one. The module first adds a S3 bucket to Dremio's catalog, and then promote to an Iceberg dataset. It then registers a governed virtual dataset based on the governance policy.
 
 ### Before you begin
 Ensure that you have the following:
@@ -19,13 +19,13 @@ helm install <chart-name> charts/dremio-module/charts/dremio-cluster
 ```
 
 ### Register the Fybrik module:
-In `dremio-module.yaml` can you specify the host and port of an already existing Dremio cluster. If Dremio is deployed using the previous step, you can set the dremio parameters in `dremio-module.yaml` as the following:
+In `dremio-module.yaml` can you specify the host and port of an already existing Dremio cluster. If Dremio is deployed using the previous step, you can set the Dremio parameters in `dremio-module.yaml` as the following:
 ```
-dremio.host: "dremio-client.<namespace of the dremio chart>.svc.cluster.local"
+dremio.host: "dremio-client.<namespace of the Dremio chart>.svc.cluster.local"
 dremio.port: "9047"
 ```
 
-Alternatively, you can ask fybrik to deploy a new dremio cluster. To that end, set the dremio parameters in `dremio-module.yaml` as the following:
+Alternatively, you can ask fybrik to deploy a new Dremio cluster. To that end, set the Dremio parameters in `dremio-module.yaml` as the following:
 ```
 dremio.host: "dremio-client.fybrik-blueprints.svc.cluster.local"
 dremio.port: "9047"
@@ -37,7 +37,7 @@ Either way, apply the fybrik module using the following command:
 kubectl apply -f dremio-module.yaml -n fybrik-system
 ```
 
-### Create iceberg asset
+### Create Iceberg asset
 TBD
 
 ### Create namespace
@@ -54,13 +54,13 @@ kubectl apply -f sample/asset-iceberg.yaml
 ```
 The asset has been marked as a `finance` data and the column `_c1` has been marked with `PII` tag.
 
-### Register iceberg access secret
-First, create a K8S secret for the credentials for accessing the iceberg table. Assuming the credentials are stored in as the environment variables `ACCESS_KEY` and `SECRET_KEY` respectivley, this can be done by:
+### Register Iceberg access secret
+First, create a K8S secret for the credentials for accessing the Iceberg table. Assuming the credentials are stored in as the environment variables `ACCESS_KEY` and `SECRET_KEY` respectivley, this can be done by:
 ```bash
 kubectl create secret generic iceberg-dataset --from-literal=access_key=${ACCESS_KEY} --from-literal=secret_key=${SECRET_KEY}
 ```
 
-You should also create a secret for accessing the dremio cluster:
+You should also create a secret for accessing the Dremio cluster:
 ```bash
 kubectl apply -f sample/secret-dremio.yaml
 ```
@@ -74,7 +74,7 @@ while [[ $(kubectl get cm sample-policy -n fybrik-system -o 'jsonpath={.metadata
 ```
 
 ### Deploy Fybrik application
-The following `fybrikapplication` deploys a dremio cluster (if specificed so by the dremio-module) and configures it via a k8s job, which registers the Iceberg asset in dremio and applies the policy to create a virtual dataset.
+The following `fybrikapplication` deploys a Dremio cluster (if specificed so by the Dremio-module) and configures it via a k8s job, which registers the Iceberg asset in Dremio and applies the policy to create a virtual dataset.
 
 ```bash
 kubectl apply -f sample/fybrikapplication.yaml
@@ -87,7 +87,7 @@ while [[ ($(kubectl get fybrikapplication fybrik-iceberg-sample -o 'jsonpath={.s
 
 Use port-forward to access Dremio
 ```bash
-kubectl port-forward svc/dremio-client -n <ns-of-dremio> 9047:9047 &
+kubectl port-forward svc/dremio-client -n <ns-of-Dremio> 9047:9047 &
 ```
 
 You can access Dremio via the browser on `http://localhost:9047/`, use the following credentials:
