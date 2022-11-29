@@ -1,0 +1,6 @@
+dependencies:
+- name: dremio-chart
+  repository: file://../dremio-chart
+  version: 0.0.0
+digest: sha256:03802f85c4d60a5426c9ec42dabada57d3f190e7bcf670079dc84389935cb40f
+generated: "2022-05-25T09:00:21.508249+03:00"

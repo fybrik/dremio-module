@@ -1,0 +1,16 @@
+dremioHost: dremio-client.fybrik-notebook-sample.svc.cluster.local
+dremioPort: 9047
+data:
+  - format: iceberg
+    name: "fybrik-notebook-sample/iceberg-dataset"
+    path: "fybric-objectstorage-iceberg-demo/warehouse/db/table"
+    connection:
+      type: s3
+      s3:
+        endpoint_url: s3.eu-de.cloud-object-storage.appdomain.cloud
+        vault_credentials:
+          address: http://vault.fybrik-system:8200
+          authPath: /v1/auth/kubernetes/login
+          role: module
+          secretPath: /v1/kubernetes-secrets/iceberg-dataset?namespace=fybrik-notebook-sample
+    transformations: "W3siUmVtb3ZlQWN0aW9uIjp7ImNvbHVtbnMiOlsiX2MxIl19LCJuYW1lIjoiUmVtb3ZlQWN0aW9uIn1d"

@@ -1,0 +1,44 @@
+dremioHost: {{ .Values.dremioCluster.host | default "host missing" }}
+dremioPort: {{ .Values.dremioCluster.port | default "port missing" }}
+dremioCredNS: {{ .Values.dremioCluster.credentialsNS | default "namespace is missing" }}
+{{ if .Values.assets -}}
+data:
+{{- range $asset := .Values.assets }}
+  - name: {{ $asset.assetID | quote }}
+    capability: {{ $asset.capability }}
+    {{- if and (.args) (eq (len .args) 1) -}}
+    {{- with (index .args 0) }}
+    format: {{ .format | quote }}
+    {{- if index . "connection" "s3" }}
+    path: "{{ .connection.s3.bucket }}/{{ .connection.s3.object_key }}"
+    connection:
+      type: s3
+      s3:
+        endpoint_url: {{ .connection.s3.endpoint }}
+        {{- range $k, $v := .vault }}
+        {{- if or (eq $k "read") (eq $k "write") }}
+        vault_credentials:
+          {{- if $v.address }}
+          address: {{ $v.address }}
+          {{- end }}
+          {{- if $v.authPath }}
+          authPath: {{ $v.authPath }}
+          {{- end }}
+          {{- if $v.role }}
+          role: {{ $v.role }}
+          {{- end }}
+          {{- if $v.secretPath }}
+          secretPath: {{ $v.secretPath }}
+          {{- end }}
+        {{- end }}
+        {{- end }}
+    {{- end }}
+    {{- end }}
+    {{- end }}
+    {{- if $asset.transformations }}
+    transformations: {{ $asset.transformations | toJson | b64enc | quote }}
+    {{- end }}
+{{- end -}}
+{{- else -}}
+data: []
+{{- end -}}

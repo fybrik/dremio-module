@@ -1,4 +1,4 @@
-apiVersion: app.fybrik.io/v1alpha1
+apiVersion: app.fybrik.io/v1beta1
 kind: FybrikModule
 metadata:
   name: dremio-module
@@ -9,9 +9,13 @@ metadata:
 spec:
   type: service
   chart:
-    name: ghcr.io/fybrik/dremio-module-chart:0.0.0
+    name: ghcr.io/fybrik/dremio-module:0.0.0
     values:
       imageChart.tag: main
+      dremioCluster.host: "dremio-client.default.svc.cluster.local"
+      dremioCluster.port: "9047"
+      dremioCluster.credentialsNS: "fybrik-sample"
+      #dremioCluster.enabled: "true" # Uncomment to install a dremio cluster as part of the module
   capabilities:
     - capability: read
       scope: workload
